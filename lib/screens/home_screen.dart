@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:findora/screens/detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -7,6 +6,7 @@ import 'package:findora/screens/see_all_screen.dart';
 import 'package:findora/services/local_storage_service.dart';
 import 'package:findora/services/auth_service.dart';
 import 'package:findora/services/analytics_service.dart';
+import 'package:findora/widgets/business_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -466,25 +466,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: filteredItems.length,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          childAspectRatio: 0.78,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                          // Use a responsive main axis extent so content doesn't overflow
-                          // or leave large empty space on different devices.
-                          mainAxisExtent: cardMainAxisExtent,
-                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 10,
+                              childAspectRatio: 0.75,
+                            ),
                         itemBuilder: (context, index) {
                           final item = filteredItems[index];
                           final isSaved = _isSaved(item['id']);
-
-                          final hasCategory =
-                              item['category'] != null &&
-                              item['category'].isNotEmpty;
-                          final hasSubcategory =
-                              item['subcategory'] != null &&
-                              item['subcategory'].isNotEmpty;
 
                           return GestureDetector(
                             onTap: () {
@@ -495,324 +486,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               );
                             },
-                            child: Card(
-                              color: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                side: BorderSide(
-                                  color: Colors.teal.withOpacity(0.25),
-                                  width: 1,
-                                ),
-                              ),
-                              elevation: 4,
-                              shadowColor: Colors.black.withOpacity(0.08),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  // Image with overlay, category pill and bookmark
-                                  SizedBox(
-                                    height: imageHeight,
-                                    width: double.infinity,
-                                    child: Stack(
-                                      children: [
-                                        ClipRRect(
-                                          borderRadius:
-                                              const BorderRadius.vertical(
-                                                top: Radius.circular(16),
-                                              ),
-                                          child:
-                                              item['image'] != null &&
-                                                  item['image'].isNotEmpty
-                                              ? (item['image'].startsWith(
-                                                      'http',
-                                                    )
-                                                    ? Image.network(
-                                                        item['image'],
-                                                        width: double.infinity,
-                                                        height: imageHeight,
-                                                        fit: BoxFit.cover,
-                                                      )
-                                                    : Image.file(
-                                                        File(item['image']),
-                                                        width: double.infinity,
-                                                        height: imageHeight,
-                                                        fit: BoxFit.cover,
-                                                      ))
-                                              : Container(
-                                                  width: double.infinity,
-                                                  height: imageHeight,
-                                                  color: Colors.grey[200],
-                                                  child: const Icon(
-                                                    Icons.storefront,
-                                                    size: 50,
-                                                    color: Colors.grey,
-                                                  ),
-                                                ),
-                                        ),
-                                        // subtle gradient at top for text/icons
-                                        Positioned.fill(
-                                          child: IgnorePointer(
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                borderRadius:
-                                                    const BorderRadius.vertical(
-                                                      top: Radius.circular(16),
-                                                    ),
-                                                gradient: LinearGradient(
-                                                  begin: Alignment.topCenter,
-                                                  end: Alignment.bottomCenter,
-                                                  colors: [
-                                                    Colors.black.withOpacity(
-                                                      0.25,
-                                                    ),
-                                                    Colors.transparent,
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        // category pill + bookmark button
-                                        Positioned(
-                                          left: 8,
-                                          right: 8,
-                                          top: 8,
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              if (hasCategory)
-                                                Container(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 4,
-                                                      ),
-                                                  decoration: BoxDecoration(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          20,
-                                                        ),
-                                                    color: Colors.white
-                                                        .withOpacity(0.85),
-                                                  ),
-                                                  child: Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: [
-                                                      const Icon(
-                                                        Icons.category_rounded,
-                                                        size: 14,
-                                                        color: Color(
-                                                          0xFF0A2D3F,
-                                                        ),
-                                                      ),
-                                                      const SizedBox(width: 4),
-                                                      Text(
-                                                        item['category'],
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        style: const TextStyle(
-                                                          fontSize: 11,
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                          color: Color(
-                                                            0xFF0A2D3F,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              Container(
-                                                decoration: BoxDecoration(
-                                                  shape: BoxShape.circle,
-                                                  color: Colors.white
-                                                      .withOpacity(0.9),
-                                                ),
-                                                child: IconButton(
-                                                  icon: Icon(
-                                                    isSaved
-                                                        ? Icons.bookmark
-                                                        : Icons.bookmark_border,
-                                                    color: isSaved
-                                                        ? Colors.red
-                                                        : const Color(
-                                                            0xFF0A2D3F,
-                                                          ),
-                                                    size: 20,
-                                                  ),
-                                                  onPressed: () => _toggleSave(
-                                                    item['id'],
-                                                    item,
-                                                  ),
-                                                  padding: EdgeInsets.zero,
-                                                  constraints:
-                                                      const BoxConstraints(
-                                                        minWidth: 32,
-                                                        minHeight: 32,
-                                                      ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  // Text content
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 8,
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          item['name'] ?? 'Unnamed',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 14,
-                                            letterSpacing: 0.1,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-
-                                        // Category + subcategory row
-                                        if (hasCategory || hasSubcategory)
-                                          Row(
-                                            children: [
-                                              if (hasCategory)
-                                                Flexible(
-                                                  child: Text(
-                                                    item['category'],
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                      fontSize: 11,
-                                                      color: Colors.teal,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ),
-                                              if (hasCategory && hasSubcategory)
-                                                const Padding(
-                                                  padding: EdgeInsets.symmetric(
-                                                    horizontal: 4,
-                                                  ),
-                                                  child: Text(
-                                                    '•',
-                                                    style: TextStyle(
-                                                      fontSize: 10,
-                                                      color: Colors.grey,
-                                                    ),
-                                                  ),
-                                                ),
-                                              if (hasSubcategory)
-                                                Flexible(
-                                                  child: Text(
-                                                    item['subcategory'],
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                      fontSize: 11,
-                                                      color: Colors.grey,
-                                                    ),
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-
-                                        const SizedBox(height: 4),
-
-                                        // Address & timing row with icons
-                                        if ((item['address'] != null &&
-                                                item['address'].isNotEmpty) ||
-                                            (item['timing'] != null &&
-                                                item['timing'].isNotEmpty))
-                                          Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              if (item['address'] != null &&
-                                                  item['address'].isNotEmpty)
-                                                Row(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.center,
-                                                  children: [
-                                                    const Icon(
-                                                      Icons.place_rounded,
-                                                      size: 13,
-                                                      color: Colors.grey,
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Expanded(
-                                                      child: Text(
-                                                        item['address'],
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        style: const TextStyle(
-                                                          fontSize: 11,
-                                                          color: Colors.grey,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              if (item['timing'] != null &&
-                                                  item['timing'].isNotEmpty)
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                        top: 2,
-                                                      ),
-                                                  child: Row(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .center,
-                                                    children: [
-                                                      const Icon(
-                                                        Icons.schedule_rounded,
-                                                        size: 13,
-                                                        color: Colors.grey,
-                                                      ),
-                                                      const SizedBox(width: 4),
-                                                      Expanded(
-                                                        child: Text(
-                                                          item['timing'],
-                                                          maxLines: 1,
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                          style:
-                                                              const TextStyle(
-                                                                fontSize: 11,
-                                                                color:
-                                                                    Colors.grey,
-                                                              ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            child: BusinessCard(
+                              item: item,
+                              showSaveButton: true,
+                              isSaved: isSaved,
+                              onSave: () => _toggleSave(item['id'], item),
+                              // imageHeight removed - now square
+                              borderRadius: BorderRadius.circular(16),
+                              showCategoryPill: true, // keeps pill on home
                             ),
                           );
                         },

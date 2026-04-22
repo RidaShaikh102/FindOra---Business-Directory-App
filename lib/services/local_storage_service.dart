@@ -11,6 +11,8 @@ class LocalStorageService {
       _firestore.collection('reviews');
   CollectionReference<Map<String, dynamic>> get _users =>
       _firestore.collection('users');
+  CollectionReference<Map<String, dynamic>> get _claims =>
+      _firestore.collection('claims');
 
   Future<void> saveBusiness(Map<String, dynamic> business) async {
     final id =
@@ -115,6 +117,66 @@ class LocalStorageService {
             .toString();
     review['id'] = id;
     await _reviews.doc(id).set(review, SetOptions(merge: true));
+  }
+
+  Future<void> saveClaim(Map<String, dynamic> claim) async {
+    final id = (claim['id'] ?? DateTime.now().millisecondsSinceEpoch.toString())
+        .toString();
+    claim['id'] = id;
+    claim['status'] = claim['status'] ?? 'pending';
+    claim['timestamp'] = FieldValue.serverTimestamp();
+    await _claims.doc(id).set(claim, SetOptions(merge: true));
+  }
+
+  Future<List<Map<String, dynamic>>> getClaims() async {
+    final snapshot = await _claims.orderBy('timestamp', descending: true).get();
+    return snapshot.docs.map((doc) {
+      final data = Map<String, dynamic>.from(doc.data());
+      data['id'] = data['id'] ?? doc.id;
+      if (data['timestamp'] is Timestamp) {
+        data['timestamp'] =
+            (data['timestamp'] as Timestamp).millisecondsSinceEpoch;
+      }
+      return data;
+    }).toList();
+  }
+
+  Future<void> updateClaimStatus(String claimId, String status) async {
+    await _claims.doc(claimId).set({
+      'status': status,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> approveClaim(String claimId) async {
+    final claimSnapshot = await _claims.doc(claimId).get();
+    if (!claimSnapshot.exists) return;
+
+    final claim = Map<String, dynamic>.from(claimSnapshot.data()!);
+    final businessId = claim['businessId']?.toString() ?? '';
+    final userId = claim['userId']?.toString() ?? '';
+    if (businessId.isEmpty || userId.isEmpty) return;
+
+    final userSnapshot = await _users.doc(userId).get();
+    final userData = userSnapshot.exists
+        ? Map<String, dynamic>.from(userSnapshot.data()!)
+        : <String, dynamic>{};
+    final ownerEmail = userData['email']?.toString() ?? '';
+
+    final businessRef = _businesses.doc(businessId);
+    final claimRef = _claims.doc(claimId);
+
+    await _firestore.runTransaction((transaction) async {
+      transaction.set(claimRef, {
+        'status': 'approved',
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      transaction.set(businessRef, {
+        'ownerId': userId,
+        'ownerEmail': ownerEmail,
+        'verifiedBusiness': true,
+      }, SetOptions(merge: true));
+    });
   }
 
   Future<List<Map<String, dynamic>>> getReviews() async {

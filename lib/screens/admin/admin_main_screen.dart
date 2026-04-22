@@ -5,6 +5,7 @@ import 'package:findora/screens/change_password_dialog.dart';
 import 'package:findora/services/analytics_service.dart';
 import 'admin_dashboard_screen.dart';
 import 'manage_businesses_screen.dart';
+import 'manage_claims_screen.dart';
 import 'manage_reviews_screen.dart';
 import 'manage_users_screen.dart';
 
@@ -21,6 +22,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
   final List<Widget> _screens = const [
     AdminDashboardScreen(),
     ManageBusinessesScreen(),
+    ManageClaimsScreen(),
     ManageReviewsScreen(),
     ManageUsersScreen(),
   ];
@@ -28,6 +30,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
   static const List<_NavItem> _navItems = [
     _NavItem(label: 'Dashboard', icon: Icons.dashboard_rounded),
     _NavItem(label: 'Businesses', icon: Icons.store_rounded),
+    _NavItem(label: 'Claims', icon: Icons.how_to_reg_rounded),
     _NavItem(label: 'Reviews', icon: Icons.rate_review_rounded),
     _NavItem(label: 'Users', icon: Icons.people_rounded),
   ];
@@ -43,34 +46,36 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
     final name = index == 0
         ? 'AdminDashboard'
         : index == 1
-            ? 'AdminBusinesses'
-            : index == 2
-                ? 'AdminReviews'
-                : 'AdminUsers';
+        ? 'AdminBusinesses'
+        : index == 2
+        ? 'AdminClaims'
+        : index == 3
+        ? 'AdminReviews'
+        : 'AdminUsers';
     AnalyticsService.logScreenView(name);
   }
 
   Future<void> _showChangePassword() async {
     final messenger = ScaffoldMessenger.of(context);
-    await showChangePasswordDialog(
-      context,
-      (oldPass, newPass) async {
-        final email = await AuthService().getCurrentUserEmail() ?? '';
-        final success =
-            await AuthService().changePassword(email, oldPass, newPass);
-        if (!mounted) return;
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              success
-                  ? 'Password updated successfully'
-                  : 'Old password is incorrect',
-            ),
-            backgroundColor: success ? Colors.green : Colors.red,
+    await showChangePasswordDialog(context, (oldPass, newPass) async {
+      final email = await AuthService().getCurrentUserEmail() ?? '';
+      final success = await AuthService().changePassword(
+        email,
+        oldPass,
+        newPass,
+      );
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? 'Password updated successfully'
+                : 'Old password is incorrect',
           ),
-        );
-      },
-    );
+          backgroundColor: success ? Colors.green : Colors.red,
+        ),
+      );
+    });
   }
 
   Future<void> _logout() async {
@@ -191,9 +196,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 500),
-                child: SizedBox.expand(
-                  child: _screens[_selectedIndex],
-                ),
+                child: SizedBox.expand(child: _screens[_selectedIndex]),
               ),
             ),
           ),

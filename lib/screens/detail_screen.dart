@@ -9,7 +9,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:findora/services/auth_service.dart';
 import 'package:findora/services/local_storage_service.dart';
 import 'package:findora/screens/all_reviews_screen.dart';
+import 'package:findora/screens/claim_business_screen.dart';
 import 'package:findora/screens/services_screen.dart';
+import 'package:findora/screens/signup_screen.dart';
 import 'package:findora/services/analytics_service.dart';
 import 'package:findora/widgets/detail_hero_image.dart';
 import 'package:findora/widgets/detail_quick_actions.dart';
@@ -32,6 +34,7 @@ class _DetailScreenState extends State<DetailScreen> {
   final AuthService _authService = AuthService();
   final LocalStorageService _storageService = LocalStorageService();
   String _currentEmail = '';
+  String _currentUserRole = 'user';
   bool _isSaved = false;
   Timer? _debounce;
   bool _isLoadingCall = false;
@@ -96,6 +99,7 @@ class _DetailScreenState extends State<DetailScreen> {
     try {
       await Future.wait([
         _loadCurrentUser(),
+        _loadCurrentUserRole(),
         _loadSavedStatus(),
         _loadAverageRating(),
       ]);
@@ -152,6 +156,73 @@ class _DetailScreenState extends State<DetailScreen> {
     final email = await _authService.getCurrentUserEmail();
     if (mounted) {
       setState(() => _currentEmail = email ?? '');
+    }
+  }
+
+  Future<void> _loadCurrentUserRole() async {
+    final role = await _authService.getCurrentUserRole();
+    if (mounted) {
+      setState(() => _currentUserRole = role ?? 'user');
+    }
+  }
+
+  Future<void> _handleClaimTap() async {
+    if (widget.item['ownerId'] != null) return;
+
+    // If current user is admin, allow direct claiming
+    if (_currentEmail == 'admin@findora.cok') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ClaimBusinessScreen(
+            businessId: widget.item['id']?.toString() ?? '',
+          ),
+        ),
+      );
+      return;
+    }
+
+    // If current user is already an owner, allow claiming
+    if (_currentUserRole == 'owner') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ClaimBusinessScreen(
+            businessId: widget.item['id']?.toString() ?? '',
+          ),
+        ),
+      );
+      return;
+    }
+
+    // Otherwise, prompt to become an owner
+    final shouldCreate = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Become a Business Owner'),
+          content: const Text(
+            'To claim this business, you need to create an owner account.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Create Owner Account'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldCreate == true) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const SignUpScreen()),
+      );
     }
   }
 
@@ -222,6 +293,8 @@ class _DetailScreenState extends State<DetailScreen> {
         break;
       case 'website':
         setState(() => _isLoadingWebsite = true);
+        break;
+      default:
         break;
     }
 
@@ -572,14 +645,118 @@ class _DetailScreenState extends State<DetailScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 22),
-                                Text(
-                                  name,
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 0.2,
-                                    color: Color(0xFF0A2D3F),
-                                  ),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              name,
+                                              style: const TextStyle(
+                                                fontSize: 24,
+                                                fontWeight: FontWeight.w800,
+                                                letterSpacing: 0.2,
+                                                color: Color(0xFF0A2D3F),
+                                              ),
+                                            ),
+                                          ),
+                                          if (ownerEmail == 'admin@findora.cok')
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                left: 8.0,
+                                              ),
+                                              child: OutlinedButton.icon(
+                                                onPressed: _handleClaimTap,
+                                                icon: const Icon(
+                                                  Icons.business,
+                                                  size: 16,
+                                                ),
+                                                label: const Text(
+                                                  'Claim this Business',
+                                                ),
+                                                style: OutlinedButton.styleFrom(
+                                                  foregroundColor: Colors.red,
+                                                  side: const BorderSide(
+                                                    color: Colors.red,
+                                                    width: 1.5,
+                                                  ),
+                                                  backgroundColor:
+                                                      Colors.transparent,
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 12,
+                                                        vertical: 6,
+                                                      ),
+                                                  minimumSize: const Size(
+                                                    0,
+                                                    32,
+                                                  ),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          6,
+                                                        ),
+                                                  ),
+                                                ),
+                                              ),
+                                            )
+                                          else if (ownerEmail !=
+                                              'admin@findora.cok')
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                left: 8.0,
+                                              ),
+                                              child: OutlinedButton.icon(
+                                                onPressed:
+                                                    null, // Non-functional badge
+                                                icon: const Icon(
+                                                  Icons.verified,
+                                                  size: 16,
+                                                ),
+                                                label: const Text(
+                                                  'Verified Business',
+                                                ),
+                                                style: ButtonStyle(
+                                                  foregroundColor:
+                                                      WidgetStateProperty.all(
+                                                        Colors.green,
+                                                      ),
+                                                  side: WidgetStateProperty.all(
+                                                    const BorderSide(
+                                                      color: Colors.green,
+                                                      width: 1.5,
+                                                    ),
+                                                  ),
+                                                  backgroundColor:
+                                                      WidgetStateProperty.all(
+                                                        Colors.transparent,
+                                                      ),
+                                                  padding: WidgetStateProperty.all(
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 6,
+                                                    ),
+                                                  ),
+                                                  minimumSize:
+                                                      WidgetStateProperty.all(
+                                                        const Size(0, 32),
+                                                      ),
+                                                  shape: WidgetStateProperty.all(
+                                                    RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            6,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 10),
                                 Row(
@@ -606,7 +783,6 @@ class _DetailScreenState extends State<DetailScreen> {
                                     const SizedBox(width: 6),
                                     const Text(
                                       'Reviews',
-
                                       style: const TextStyle(
                                         color: Colors.grey,
                                         fontSize: 13,
@@ -738,35 +914,6 @@ class _DetailScreenState extends State<DetailScreen> {
                                 SizedBox(
                                   width: double.infinity,
                                   child: ElevatedButton.icon(
-                                    onPressed: liveLocation.isNotEmpty
-                                        ? () => _launchUrl(liveLocation)
-                                        : () => _showSnack(
-                                            'No location available',
-                                          ),
-                                    icon: const Icon(
-                                      Icons.directions,
-                                      color: Colors.white,
-                                    ),
-                                    label: const Text(
-                                      'Get Directions',
-                                      style: TextStyle(fontSize: 16),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.teal,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 16,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton.icon(
                                     onPressed: () {
                                       Navigator.push(
                                         context,
@@ -803,6 +950,37 @@ class _DetailScreenState extends State<DetailScreen> {
                                     ),
                                   ),
                                 ),
+
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    onPressed: liveLocation.isNotEmpty
+                                        ? () => _launchUrl(liveLocation)
+                                        : () => _showSnack(
+                                            'No location available',
+                                          ),
+                                    icon: const Icon(
+                                      Icons.directions,
+                                      color: Colors.white,
+                                    ),
+                                    label: const Text(
+                                      'Get Directions',
+                                      style: TextStyle(fontSize: 16),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.teal,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 16,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
                                 const SizedBox(height: 20),
                                 const Text(
                                   'About',
@@ -850,7 +1028,7 @@ class _DetailScreenState extends State<DetailScreen> {
                                 const SizedBox(height: 16),
                                 const Center(
                                   child: Text(
-                                    '© 2023 Findora. All rights reserved.',
+                                    '© 2026 Findora. All rights reserved.',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.grey,
@@ -877,7 +1055,7 @@ class _DetailScreenState extends State<DetailScreen> {
         widget.item['id'] ?? '',
       );
       await Share.share(
-        'Check out this business: $name\n\n$deepLink',
+        'Check out this business: $name\\n\\n$deepLink',
         subject: 'Business Recommendation: $name',
       );
     } catch (e) {

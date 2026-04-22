@@ -2,6 +2,7 @@ import 'package:findora/screens/detail_screen.dart';
 import 'package:findora/services/local_storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:findora/services/auth_service.dart';
+import 'package:findora/widgets/business_card.dart';
 
 class SavedBusinessesScreen extends StatefulWidget {
   const SavedBusinessesScreen({super.key});
@@ -103,9 +104,9 @@ class _SavedBusinessesScreenState extends State<SavedBusinessesScreen> {
                 itemCount: savedBusinesses.length,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  childAspectRatio: 0.75,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
+                  childAspectRatio: 0.74,
                 ),
                 itemBuilder: (context, index) {
                   final item = savedBusinesses[index];
@@ -118,103 +119,7 @@ class _SavedBusinessesScreenState extends State<SavedBusinessesScreen> {
                         ),
                       );
                     },
-                    child: Card(
-                      color: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: const BorderSide(color: Colors.teal, width: 1),
-                      ),
-                      elevation: 2,
-                      shadowColor: Colors.black12,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Image
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(16),
-                              ),
-                              child:
-                                  item['image'] != null &&
-                                      item['image'].toString().isNotEmpty
-                                  ? Image.network(
-                                      item['image'],
-                                      fit: BoxFit.cover,
-                                      width: double.infinity,
-                                    )
-                                  : Container(
-                                      color: Colors.grey.shade200,
-                                      child: const Center(
-                                        child: Icon(
-                                          Icons.storefront,
-                                          size: 50,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    ),
-                            ),
-                          ),
-
-                          // Name
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 8, 12, 2),
-                            child: Text(
-                              item['name'] ?? 'Unnamed',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14 * scale,
-                              ),
-                            ),
-                          ),
-
-                          // Subcategory
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 2),
-                            child: Text(
-                              item['subcategory'] ?? '',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 12 * scale,
-                              ),
-                            ),
-                          ),
-
-                          // Address & Timing
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item['address'] ?? '',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 12 * scale,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  item['timing'] ?? '',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 12 * scale,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    child: BusinessCard(item: item),
                   );
                 },
               ),

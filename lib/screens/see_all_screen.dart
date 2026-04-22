@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:findora/services/local_storage_service.dart';
 import 'package:findora/services/auth_service.dart';
 import 'package:findora/services/analytics_service.dart';
+import 'package:findora/widgets/business_card.dart';
 
 class AllBusinessesScreen extends StatefulWidget {
   final String? selectedCategory;
@@ -415,9 +416,9 @@ class _AllBusinessesScreenState extends State<AllBusinessesScreen> {
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
-                                childAspectRatio: 0.78,
                                 crossAxisSpacing: 10,
                                 mainAxisSpacing: 10,
+                                childAspectRatio: 0.75,
                               ),
                           itemCount: filteredBusinesses.length,
                           itemBuilder: (context, index) {
@@ -435,151 +436,13 @@ class _AllBusinessesScreenState extends State<AllBusinessesScreen> {
                                   ),
                                 );
                               },
-                              child: Card(
-                                color: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  side: const BorderSide(
-                                    color: Colors.teal,
-                                    width: 1,
-                                  ),
-                                ),
-                                elevation: 3,
-                                shadowColor: Colors.grey.withOpacity(0.3),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: const BorderRadius.vertical(
-                                        top: Radius.circular(12),
-                                      ),
-                                      child:
-                                          item['image'] != null &&
-                                              item['image'].isNotEmpty
-                                          ? (item['image'].startsWith('http')
-                                                ? Image.network(
-                                                    item['image'],
-                                                    width: double.infinity,
-                                                    height: 120,
-                                                    fit: BoxFit.cover,
-                                                  )
-                                                : Image.file(
-                                                    File(item['image']),
-                                                    width: double.infinity,
-                                                    height: 120,
-                                                    fit: BoxFit.cover,
-                                                  ))
-                                          : Container(
-                                              width: double.infinity,
-                                              height: 120,
-                                              color: Colors.grey[200],
-                                              child: const Icon(
-                                                Icons.storefront,
-                                                size: 50,
-                                                color: Colors.grey,
-                                              ),
-                                            ),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Expanded(
-                                                child: Text(
-                                                  item['name'] ?? 'Unnamed',
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 14,
-                                                  ),
-                                                ),
-                                              ),
-                                              IconButton(
-                                                icon: Icon(
-                                                  isSaved
-                                                      ? Icons.bookmark
-                                                      : Icons.bookmark_border,
-                                                  color: isSaved
-                                                      ? Colors.red
-                                                      : null,
-                                                ),
-                                                onPressed: () =>
-                                                    _toggleSave(item),
-                                                padding: EdgeInsets.zero,
-                                                constraints:
-                                                    const BoxConstraints(),
-                                              ),
-                                            ],
-                                          ),
-                                          if (item['subcategory'] != null &&
-                                              item['subcategory'].isNotEmpty)
-                                            Text(
-                                              item['subcategory'],
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                color: Colors.grey,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                          if ((item['address'] != null &&
-                                                  item['address'].isNotEmpty) ||
-                                              (item['timing'] != null &&
-                                                  item['timing'].isNotEmpty))
-                                            Padding(
-                                              padding: const EdgeInsets.only(
-                                                top: 2,
-                                              ),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  if (item['address'] != null &&
-                                                      item['address']
-                                                          .isNotEmpty)
-                                                    Text(
-                                                      item['address'],
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      style: const TextStyle(
-                                                        fontSize: 12,
-                                                        color: Colors.grey,
-                                                      ),
-                                                    ),
-                                                  if (item['timing'] != null &&
-                                                      item['timing'].isNotEmpty)
-                                                    Text(
-                                                      item['timing'],
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      style: const TextStyle(
-                                                        fontSize: 12,
-                                                        color: Colors.grey,
-                                                      ),
-                                                    ),
-                                                ],
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              child: BusinessCard(
+                                item: item,
+                                showSaveButton: true,
+                                isSaved: isSaved,
+                                onSave: () => _toggleSave(item),
+                                // imageHeight removed - now square
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             );
                           },

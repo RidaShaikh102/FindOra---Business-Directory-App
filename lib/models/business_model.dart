@@ -16,6 +16,8 @@ class BusinessModel {
   final String facebook;
   final double? latitude;
   final double? longitude;
+  final String? ownerId;
+  final bool? isVerified;
 
   BusinessModel({
     required this.id,
@@ -35,6 +37,8 @@ class BusinessModel {
     required this.facebook,
     this.latitude,
     this.longitude,
+    this.ownerId,
+    this.isVerified,
   });
 
   factory BusinessModel.fromJson(Map<String, dynamic> json) {
@@ -56,6 +60,11 @@ class BusinessModel {
       facebook: json['facebook'] ?? '',
       latitude: json['latitude'],
       longitude: json['longitude'],
+      ownerId: json['ownerId']?.toString(),
+      isVerified:
+          json['verifiedBusiness'] as bool? ??
+          json['isVerified'] as bool? ??
+          false,
     );
   }
 
@@ -78,6 +87,9 @@ class BusinessModel {
       'facebook': facebook,
       'latitude': latitude,
       'longitude': longitude,
+      'ownerId': ownerId,
+      'isVerified': isVerified,
+      'verifiedBusiness': isVerified, // backward compatibility
     };
   }
 }

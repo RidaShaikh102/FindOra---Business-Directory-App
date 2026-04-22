@@ -6,7 +6,7 @@ import 'package:findora/screens/login_screen.dart';
 import 'package:findora/screens/my_reviews.dart';
 import 'package:findora/screens/privacy_setting_screen.dart';
 import 'package:findora/screens/saved_businesses.dart';
-// import 'package:findora/screens/user_review_screen.dart';
+
 import 'package:findora/screens/your_businesses.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
