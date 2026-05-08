@@ -4,6 +4,7 @@ import 'package:findora/services/local_storage_service.dart';
 import 'package:findora/services/auth_service.dart';
 import 'package:findora/services/analytics_service.dart';
 import 'package:findora/widgets/business_card.dart';
+import 'package:findora/widgets/responsive_layout.dart';
 
 class AllBusinessesScreen extends StatefulWidget {
   final String? selectedCategory;
@@ -165,8 +166,8 @@ class _AllBusinessesScreenState extends State<AllBusinessesScreen> {
       context: context,
       builder: (_) {
         return Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 500),
+          child: ResponsivePageContainer(
+            maxWidth: 720,
             child: Dialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -334,8 +335,8 @@ class _AllBusinessesScreenState extends State<AllBusinessesScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 500),
+        child: ResponsivePageContainer(
+          maxWidth: 1280,
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -411,38 +412,47 @@ class _AllBusinessesScreenState extends State<AllBusinessesScreen> {
                         )
                       : filteredBusinesses.isEmpty
                       ? const Center(child: Text('No businesses found.'))
-                      : GridView.builder(
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 10,
-                                mainAxisSpacing: 10,
-                                childAspectRatio: 0.75,
-                              ),
-                          itemCount: filteredBusinesses.length,
-                          itemBuilder: (context, index) {
-                            final item = filteredBusinesses[index];
-                            final isSaved = savedBusinessIds.contains(
-                              item['id'],
+                      : LayoutBuilder(
+                          builder: (context, constraints) {
+                            final columns = ResponsiveLayout.adaptiveGridCount(
+                              context,
+                              compact: 2,
+                              medium: 3,
+                              expanded: 4,
                             );
+                            return GridView.builder(
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: columns,
+                                    crossAxisSpacing: 10,
+                                    mainAxisSpacing: 10,
+                                    childAspectRatio: columns >= 4 ? 0.84 : 0.78,
+                                  ),
+                              itemCount: filteredBusinesses.length,
+                              itemBuilder: (context, index) {
+                                final item = filteredBusinesses[index];
+                                final isSaved = savedBusinessIds.contains(
+                                  item['id'],
+                                );
 
-                            return GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => DetailScreen(item: item),
+                                return GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => DetailScreen(item: item),
+                                      ),
+                                    );
+                                  },
+                                  child: BusinessCard(
+                                    item: item,
+                                    showSaveButton: true,
+                                    isSaved: isSaved,
+                                    onSave: () => _toggleSave(item),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                 );
                               },
-                              child: BusinessCard(
-                                item: item,
-                                showSaveButton: true,
-                                isSaved: isSaved,
-                                onSave: () => _toggleSave(item),
-                                // imageHeight removed - now square
-                                borderRadius: BorderRadius.circular(12),
-                              ),
                             );
                           },
                         ),

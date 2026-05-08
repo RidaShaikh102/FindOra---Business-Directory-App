@@ -14,6 +14,7 @@ import 'package:findora/screens/search_screen.dart';
 import 'package:findora/screens/owner/owner_dashboard.dart';
 import 'package:findora/services/auth_service.dart';
 import 'package:findora/services/analytics_service.dart';
+import 'package:findora/widgets/responsive_layout.dart';
 
 class MainScreen extends StatefulWidget {
   final String userRole;
@@ -102,48 +103,109 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = ResponsiveLayout.isMediumOrLarger(context);
+    if (!isDesktop) {
+      return Scaffold(
+        key: _scaffoldKey,
+        drawer: _buildDrawer(context),
+        appBar: _buildTopAppBar(),
+        body: _screens[_selectedIndex],
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white,
+          showSelectedLabels: false,
+          showUnselectedLabels: false,
+          selectedItemColor: const Color(0xFF0A2D3F),
+          unselectedItemColor: Colors.teal[600],
+          onTap: _onItemTapped,
+          items: _navItems,
+        ),
+      );
+    }
+
     return Scaffold(
-      key: _scaffoldKey,
-      drawer: _buildDrawer(context),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 4,
-        shadowColor: Colors.black.withOpacity(0.3),
-        iconTheme: const IconThemeData(color: Colors.teal),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+      backgroundColor: const Color(0xFFF7F9FB),
+      appBar: _buildTopAppBar(),
+      body: ResponsivePageContainer(
+        maxWidth: 1440,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
           children: [
-            const Text(
-              'FindOra',
-              style: TextStyle(
-                color: Colors.teal,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: NavigationRail(
+                selectedIndex: _selectedIndex,
+                onDestinationSelected: _onItemTapped,
+                backgroundColor: Colors.white,
+                labelType: NavigationRailLabelType.all,
+                selectedLabelTextStyle: const TextStyle(
+                  color: Color(0xFF0A2D3F),
+                  fontWeight: FontWeight.w700,
+                ),
+                selectedIconTheme: const IconThemeData(color: Color(0xFF0A2D3F)),
+                unselectedIconTheme: IconThemeData(color: Colors.teal.shade600),
+                destinations: _navItems
+                    .map(
+                      (item) => NavigationRailDestination(
+                        icon: item.icon,
+                        label: Text(item.label ?? ''),
+                      ),
+                    )
+                    .toList(),
+                trailing: Expanded(
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: IconButton(
+                      onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                      icon: const Icon(Icons.menu_open_rounded),
+                      tooltip: 'Open menu',
+                    ),
+                  ),
+                ),
               ),
             ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(0, 255, 255, 255),
-                borderRadius: BorderRadius.circular(8),
+            const SizedBox(width: 16),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Container(color: Colors.white, child: _screens[_selectedIndex]),
               ),
-              child: Image.asset('lib/assets/logo.png', height: 32, width: 32),
             ),
           ],
         ),
       ),
-      body: _screens[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        showSelectedLabels: false,
-        showUnselectedLabels: false,
-        selectedItemColor: const Color(0xFF0A2D3F),
-        unselectedItemColor: Colors.teal[600],
-        onTap: _onItemTapped,
-        items: _navItems,
+      drawer: _buildDrawer(context),
+    );
+  }
+
+  PreferredSizeWidget _buildTopAppBar() {
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 4,
+      shadowColor: Colors.black.withOpacity(0.3),
+      iconTheme: const IconThemeData(color: Colors.teal),
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          const Text(
+            'FindOra',
+            style: TextStyle(
+              color: Colors.teal,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: const Color.fromARGB(0, 255, 255, 255),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Image.asset('lib/assets/logo.png', height: 32, width: 32),
+          ),
+        ],
       ),
     );
   }

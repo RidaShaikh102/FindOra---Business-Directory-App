@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:findora/widgets/responsive_layout.dart';
 
 class SharedProfileScreen extends StatelessWidget {
   final String username;
@@ -27,8 +28,8 @@ class SharedProfileScreen extends StatelessWidget {
         foregroundColor: Colors.white,
       ),
       body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 500),
+        child: ResponsivePageContainer(
+          maxWidth: 980,
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Container(

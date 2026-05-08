@@ -20,6 +20,7 @@ import 'package:findora/services/deep_link_service.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:findora/widgets/lottie_helper.dart';
+import 'package:findora/widgets/responsive_layout.dart';
 import '../utils/logger.dart';
 
 class DetailScreen extends StatefulWidget {
@@ -580,6 +581,7 @@ class _DetailScreenState extends State<DetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = ResponsiveLayout.isMediumOrLarger(context);
     return ErrorBoundary(
       screenName: 'DetailScreen',
       builder: (context) {
@@ -594,20 +596,15 @@ class _DetailScreenState extends State<DetailScreen> {
                 isSaved: _isSaved,
               ),
               DraggableScrollableSheet(
-                initialChildSize: 0.65,
+                initialChildSize: isDesktop ? 0.72 : 0.65,
                 minChildSize: 0.65,
                 maxChildSize: 0.95,
                 builder: (context, scrollController) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
+                  final content = Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     decoration: const BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(25),
-                      ),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black12,
@@ -1030,6 +1027,14 @@ class _DetailScreenState extends State<DetailScreen> {
                                 const SizedBox(height: 20),
                               ],
                             ),
+                    ),
+                  );
+                  if (!isDesktop) return content;
+                  return Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 980),
+                      child: content,
                     ),
                   );
                 },

@@ -1,8 +1,6 @@
-import 'dart:io';
 import 'package:findora/services/supabase_service.dart';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart'
-    show kIsWeb; // ✅ added for web detection
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
@@ -24,7 +22,8 @@ class AddBusinessScreen extends StatefulWidget {
 class _AddBusinessScreenState extends State<AddBusinessScreen> {
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
-  File? _selectedImage;
+  XFile? _selectedImage;
+  Uint8List? _selectedImageBytes;
   bool _isLoading = false;
   double? _latitude;
   double? _longitude;
@@ -98,14 +97,25 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
   }
 
   Future<void> _pickImage() async {
-    final XFile? pickedFile = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-    );
-    if (pickedFile != null) {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      if (pickedFile == null) return;
+
+      final imageBytes = await pickedFile.readAsBytes();
+      if (!mounted) return;
+
       setState(() {
-        _selectedImage = File(pickedFile.path);
+        _selectedImage = pickedFile;
+        _selectedImageBytes = imageBytes;
       });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not read the selected image: $e')),
+      );
     }
   }
 
@@ -429,17 +439,11 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
                         )
                       : ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: kIsWeb
-                              ? Image.network(
-                                  _selectedImage!.path,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                )
-                              : Image.file(
-                                  _selectedImage!,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                ),
+                          child: Image.memory(
+                            _selectedImageBytes!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                          ),
                         ),
                 ),
               ),

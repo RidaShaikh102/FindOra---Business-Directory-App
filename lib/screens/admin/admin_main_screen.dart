@@ -3,6 +3,7 @@ import 'package:findora/services/auth_service.dart';
 import 'package:findora/screens/login_screen.dart';
 import 'package:findora/screens/change_password_dialog.dart';
 import 'package:findora/services/analytics_service.dart';
+import 'package:findora/widgets/responsive_layout.dart';
 import 'admin_dashboard_screen.dart';
 import 'admin_orders_screen.dart';
 import 'manage_businesses_screen.dart';
@@ -96,6 +97,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
   @override
   Widget build(BuildContext context) {
     final currentNav = _navItems[_selectedIndex];
+    final isDesktop = ResponsiveLayout.isMediumOrLarger(context);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FB),
@@ -198,44 +200,82 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
           ),
           // Content
           Expanded(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 500),
-                child: SizedBox.expand(child: _screens[_selectedIndex]),
-              ),
+            child: ResponsivePageContainer(
+              maxWidth: 1400,
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+              child: isDesktop
+                  ? Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(18),
+                          child: NavigationRail(
+                            selectedIndex: _selectedIndex,
+                            onDestinationSelected: _onItemTapped,
+                            labelType: NavigationRailLabelType.all,
+                            backgroundColor: Colors.white,
+                            destinations: _navItems
+                                .map(
+                                  (item) => NavigationRailDestination(
+                                    icon: Icon(item.icon),
+                                    label: Text(item.label),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: Container(
+                              color: Colors.white,
+                              child: _screens[_selectedIndex],
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Center(
+                      child: SizedBox.expand(child: _screens[_selectedIndex]),
+                    ),
             ),
           ),
         ],
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 12,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: List.generate(
-                _navItems.length,
-                (index) => Expanded(
-                  child: _NavTile(
-                    item: _navItems[index],
-                    isSelected: _selectedIndex == index,
-                    onTap: () => _onItemTapped(index),
+      bottomNavigationBar: isDesktop
+          ? null
+          : Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 12,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    children: List.generate(
+                      _navItems.length,
+                      (index) => Expanded(
+                        child: _NavTile(
+                          item: _navItems[index],
+                          isSelected: _selectedIndex == index,
+                          onTap: () => _onItemTapped(index),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ),
-      ),
     );
   }
 }

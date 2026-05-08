@@ -7,6 +7,7 @@ import 'package:findora/services/local_storage_service.dart';
 import 'package:findora/services/auth_service.dart';
 import 'package:findora/services/analytics_service.dart';
 import 'package:findora/widgets/business_card.dart';
+import 'package:findora/widgets/responsive_layout.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -151,8 +152,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final maxWidth = screenWidth > 500 ? 500.0 : screenWidth;
     final scale = MediaQuery.of(context).textScaleFactor.clamp(1.0, 1.3);
 
     final markers = allBusinesses
@@ -190,10 +189,9 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SafeArea(
-        child: Center(
-          child: SizedBox(
-            width: maxWidth,
-            child: SingleChildScrollView(
+        child: ResponsivePageContainer(
+          maxWidth: 1280,
+          child: SingleChildScrollView(
               padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -437,17 +435,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   /// Grid of Businesses (responsive layout, original height)
                   LayoutBuilder(
                     builder: (context, constraints) {
-                      final maxWidth = constraints.maxWidth;
-
-                      // Responsive column count based on available width
-                      int crossAxisCount;
-                      if (maxWidth < 360) {
-                        crossAxisCount = 1;
-                      } else if (maxWidth < 600) {
-                        crossAxisCount = 2;
-                      } else {
-                        crossAxisCount = 3;
-                      }
+                      final crossAxisCount = ResponsiveLayout.adaptiveGridCount(
+                        context,
+                        compact: 2,
+                        medium: 3,
+                        expanded: 4,
+                      );
 
                       // Make card content responsive to text scale
                       final textScale = MediaQuery.of(
@@ -455,24 +448,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       ).textScaleFactor.clamp(1.0, 1.4);
 
                       // Keep original fixed image height and base text height
-                      const imageHeight = 120.0;
-                      const baseTextSectionHeight = 80.0;
-                      final cardMainAxisExtent =
-                          imageHeight +
-                          (baseTextSectionHeight * textScale) +
-                          16;
+                      final childAspectRatio = crossAxisCount >= 4 ? 0.84 : 0.78;
 
                       return GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: filteredItems.length,
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 10,
-                              mainAxisSpacing: 10,
-                              childAspectRatio: 0.75,
-                            ),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          childAspectRatio: childAspectRatio,
+                        ),
                         itemBuilder: (context, index) {
                           final item = filteredItems[index];
                           final isSaved = _isSaved(item['id']);
@@ -503,7 +490,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-          ),
         ),
       ),
     );

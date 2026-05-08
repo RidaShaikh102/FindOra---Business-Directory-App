@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -34,8 +34,10 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
   final LocalStorageService _storageService = LocalStorageService();
+  final ImagePicker _picker = ImagePicker();
 
-  File? _selectedImage;
+  XFile? _selectedImage;
+  Uint8List? _selectedImageBytes;
   bool _isSaving = false;
   bool _isAvailable = true;
 
@@ -86,15 +88,27 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
   }
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      setState(() => _selectedImage = File(picked.path));
+    try {
+      final picked = await _picker.pickImage(source: ImageSource.gallery);
+      if (picked == null) return;
+
+      final imageBytes = await picked.readAsBytes();
+      if (!mounted) return;
+
+      setState(() {
+        _selectedImage = picked;
+        _selectedImageBytes = imageBytes;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not read the selected image: $e')),
+      );
     }
   }
 
   Future<String?> _uploadToSupabase(
-    File file,
+    XFile file,
     String businessId,
     String serviceId,
   ) async {
@@ -261,8 +275,8 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
                             )
                           : ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              child: Image.file(
-                                _selectedImage!,
+                              child: Image.memory(
+                                _selectedImageBytes!,
                                 fit: BoxFit.cover,
                                 width: double.infinity,
                               ),

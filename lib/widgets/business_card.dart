@@ -8,6 +8,7 @@ class BusinessCard extends StatelessWidget {
   final VoidCallback? onSave;
   final BorderRadius borderRadius;
   final bool showCategoryPill;
+  final bool useComfortableDensity;
 
   const BusinessCard({
     super.key,
@@ -17,11 +18,18 @@ class BusinessCard extends StatelessWidget {
     this.onSave,
     this.borderRadius = const BorderRadius.all(Radius.circular(16)),
     this.showCategoryPill = false,
+    this.useComfortableDensity = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final double scale = MediaQuery.of(context).textScaleFactor.clamp(1.0, 1.3);
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final comfortable = useComfortableDensity || screenWidth >= 900;
+    final contentPadding = comfortable ? 12.0 : 8.0;
+    final titleSize = comfortable ? 14.0 : 13.0;
+    final metaSize = comfortable ? 11.0 : 10.0;
+    final iconSize = comfortable ? 13.0 : 12.0;
 
     Widget? overlayWidget;
     if (showCategoryPill) {
@@ -35,7 +43,10 @@ class BusinessCard extends StatelessWidget {
             if (item['category'] != null &&
                 item['category'].toString().isNotEmpty)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                padding: EdgeInsets.symmetric(
+                  horizontal: comfortable ? 8 : 6,
+                  vertical: comfortable ? 4 : 3,
+                ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
                   color: Colors.white.withOpacity(0.85),
@@ -45,7 +56,7 @@ class BusinessCard extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.category_rounded,
-                      size: 12,
+                      size: iconSize,
                       color: const Color(0xFF0A2D3F),
                     ),
                     const SizedBox(width: 3),
@@ -54,8 +65,8 @@ class BusinessCard extends StatelessWidget {
                         item['category'].toString(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 10,
+                        style: TextStyle(
+                          fontSize: metaSize,
                           fontWeight: FontWeight.w500,
                           color: Color(0xFF0A2D3F),
                         ),
@@ -74,7 +85,7 @@ class BusinessCard extends StatelessWidget {
                   icon: Icon(
                     isSaved ? Icons.bookmark : Icons.bookmark_border,
                     color: isSaved ? Colors.red : Colors.teal,
-                    size: 18,
+                    size: comfortable ? 20 : 18,
                   ),
                   onPressed: onSave,
                   padding: EdgeInsets.zero,
@@ -150,9 +161,9 @@ class BusinessCard extends StatelessWidget {
                               ))
                       : Container(
                           color: Colors.grey.shade200,
-                          child: const Icon(
+                  child: Icon(
                             Icons.storefront_outlined,
-                            size: 32,
+                    size: comfortable ? 36 : 32,
                             color: Colors.grey,
                           ),
                         ),
@@ -179,14 +190,19 @@ class BusinessCard extends StatelessWidget {
           ),
           // Compact text section
           Padding(
-            padding: const EdgeInsets.fromLTRB(8, 6, 8, 2),
+            padding: EdgeInsets.fromLTRB(
+              contentPadding,
+              comfortable ? 8 : 6,
+              contentPadding,
+              2,
+            ),
             child: Text(
               item['name']?.toString() ?? 'Unnamed',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 13 * scale,
+                fontSize: titleSize * scale,
               ),
             ),
           ),
@@ -195,7 +211,10 @@ class BusinessCard extends StatelessWidget {
               (item['subcategory'] != null &&
                   item['subcategory'].toString().isNotEmpty))
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+              padding: EdgeInsets.symmetric(
+                horizontal: contentPadding,
+                vertical: 1,
+              ),
               child: Row(
                 children: [
                   if (item['category'] != null &&
@@ -206,7 +225,7 @@ class BusinessCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 10 * scale,
+                          fontSize: metaSize * scale,
                           color: Colors.teal,
                           fontWeight: FontWeight.w600,
                         ),
@@ -219,7 +238,7 @@ class BusinessCard extends StatelessWidget {
                     Text(
                       ' • ',
                       style: TextStyle(
-                        fontSize: 10 * scale,
+                        fontSize: metaSize * scale,
                         color: Colors.grey,
                       ),
                     ),
@@ -231,7 +250,7 @@ class BusinessCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 10 * scale,
+                          fontSize: metaSize * scale,
                           color: Colors.grey,
                         ),
                       ),
@@ -240,7 +259,12 @@ class BusinessCard extends StatelessWidget {
               ),
             ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(8, 1, 8, 6),
+            padding: EdgeInsets.fromLTRB(
+              contentPadding,
+              1,
+              contentPadding,
+              comfortable ? 8 : 6,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -251,7 +275,11 @@ class BusinessCard extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Icon(Icons.place_rounded, size: 12, color: Colors.grey),
+                        Icon(
+                          Icons.place_rounded,
+                          size: iconSize,
+                          color: Colors.grey,
+                        ),
                         const SizedBox(width: 3),
                         Expanded(
                           child: Text(
@@ -259,7 +287,7 @@ class BusinessCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 10 * scale,
+                              fontSize: metaSize * scale,
                               color: Colors.grey[700],
                             ),
                           ),
@@ -274,7 +302,7 @@ class BusinessCard extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.schedule_rounded,
-                        size: 12,
+                        size: iconSize,
                         color: Colors.grey,
                       ),
                       const SizedBox(width: 3),
@@ -284,7 +312,7 @@ class BusinessCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 10 * scale,
+                            fontSize: metaSize * scale,
                             color: Colors.grey[700],
                           ),
                         ),

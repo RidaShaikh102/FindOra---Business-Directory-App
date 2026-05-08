@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:findora/services/auth_service.dart';
 import 'package:findora/config/app_config.dart';
 import 'package:findora/services/analytics_service.dart';
+import 'package:findora/widgets/responsive_layout.dart';
 
 class ManageUsersScreen extends StatefulWidget {
   const ManageUsersScreen({super.key});
@@ -66,43 +67,65 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> {
       return const Center(child: Text('No users found.'));
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: _users.length,
-      itemBuilder: (context, index) {
-        final user = _users[index];
-        final role = user['role'] ?? 'user';
-        final blocked = user['isBlocked'] == true;
-        return Card(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: const BorderSide(color: Colors.teal, width: 1),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = ResponsiveLayout.isMediumOrLarger(context);
+        if (!isDesktop) {
+          return ListView.builder(
+            padding: const EdgeInsets.all(12),
+            itemCount: _users.length,
+            itemBuilder: (context, index) => _buildUserCard(_users[index], index),
+          );
+        }
+        final columns = ResponsiveLayout.adaptiveGridCount(
+          context,
+          compact: 1,
+          medium: 2,
+          expanded: 3,
+        );
+        return GridView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: _users.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 2.4,
           ),
-          child: ListTile(
-            title: Text(user['email'] ?? 'Unknown'),
-            subtitle: Text('Role: $role\nBlocked: ${blocked ? 'Yes' : 'No'}'),
-            isThreeLine: true,
-            trailing: PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'block') {
-                  _toggleBlock(index);
-                } else {
-                  _changeRole(index, value);
-                }
-              },
-              itemBuilder: (context) => const [
-                PopupMenuItem(value: 'user', child: Text('Set User')),
-                PopupMenuItem(value: 'owner', child: Text('Set Owner')),
-                PopupMenuItem(
-                  value: 'super_admin',
-                  child: Text('Set Super Admin'),
-                ),
-                PopupMenuItem(value: 'block', child: Text('Block/Unblock')),
-              ],
-            ),
-          ),
+          itemBuilder: (context, index) => _buildUserCard(_users[index], index),
         );
       },
+    );
+  }
+
+  Widget _buildUserCard(Map<String, dynamic> user, int index) {
+    final role = user['role'] ?? 'user';
+    final blocked = user['isBlocked'] == true;
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Colors.teal, width: 1),
+      ),
+      child: ListTile(
+        title: Text(user['email'] ?? 'Unknown'),
+        subtitle: Text('Role: $role\nBlocked: ${blocked ? 'Yes' : 'No'}'),
+        isThreeLine: true,
+        trailing: PopupMenuButton<String>(
+          onSelected: (value) {
+            if (value == 'block') {
+              _toggleBlock(index);
+            } else {
+              _changeRole(index, value);
+            }
+          },
+          itemBuilder: (context) => const [
+            PopupMenuItem(value: 'user', child: Text('Set User')),
+            PopupMenuItem(value: 'owner', child: Text('Set Owner')),
+            PopupMenuItem(value: 'super_admin', child: Text('Set Super Admin')),
+            PopupMenuItem(value: 'block', child: Text('Block/Unblock')),
+          ],
+        ),
+      ),
     );
   }
 }

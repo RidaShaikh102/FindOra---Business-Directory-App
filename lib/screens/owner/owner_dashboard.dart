@@ -7,6 +7,7 @@ import 'package:findora/screens/your_businesses.dart';
 import 'package:findora/services/analytics_service.dart';
 import 'package:findora/services/auth_service.dart';
 import 'package:findora/services/local_storage_service.dart';
+import 'package:findora/widgets/responsive_layout.dart';
 
 class OwnerDashboardScreen extends StatefulWidget {
   const OwnerDashboardScreen({super.key});
@@ -51,8 +52,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FB),
       body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
+        child: ResponsivePageContainer(
+          maxWidth: 1200,
           child: CustomScrollView(
             slivers: [
               SliverToBoxAdapter(
@@ -142,10 +143,19 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                   delegate: SliverChildListDelegate([
                     LayoutBuilder(
                       builder: (context, constraints) {
-                        final cardWidth = (constraints.maxWidth - 12) / 2;
+                        final columns = ResponsiveLayout.adaptiveGridCount(
+                          context,
+                          compact: 2,
+                          medium: 3,
+                          expanded: 4,
+                        );
+                        final spacing = 12.0;
+                        final cardWidth =
+                            (constraints.maxWidth - ((columns - 1) * spacing)) /
+                            columns;
                         return Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
+                          spacing: spacing,
+                          runSpacing: spacing,
                           children: [
                             SizedBox(
                               width: cardWidth,

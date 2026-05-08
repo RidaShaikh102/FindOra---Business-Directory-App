@@ -146,7 +146,8 @@ service cloud.firestore {
     }
 
     match /reviews/{reviewId} {
-      allow read: if resource.data.hidden == false;
+      allow read: if isAdmin() || resource.data.hidden == false;
+
 
       allow create: if signedIn()
         && request.resource.data.userEmail == email()

@@ -10,6 +10,7 @@ import 'package:findora/screens/cart_screen.dart';
 import 'package:findora/services/analytics_service.dart';
 import 'package:findora/services/auth_service.dart';
 import 'package:findora/services/local_storage_service.dart';
+import 'package:findora/widgets/responsive_layout.dart';
 
 class ServicesScreen extends ConsumerStatefulWidget {
   final String businessName;
@@ -227,8 +228,8 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
         ],
       ),
       body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
+        child: ResponsivePageContainer(
+          maxWidth: 1200,
           child: isLoading
               ? const Center(
                   child: CircularProgressIndicator(color: Colors.teal),
@@ -251,139 +252,34 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
                             ),
                           ),
                         )
-                      : ListView.builder(
-                          itemCount: services.length,
-                          itemBuilder: (context, index) {
-                            final service = services[index];
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: Colors.teal.shade100,
-                                  width: 1,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.03),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 3),
+                      : LayoutBuilder(
+                          builder: (context, constraints) {
+                            final useGrid =
+                                ResponsiveLayout.isMediumOrLarger(context);
+                            if (!useGrid) {
+                              return ListView.builder(
+                                itemCount: services.length,
+                                itemBuilder: (context, index) =>
+                                    _buildServiceCard(services[index]),
+                              );
+                            }
+                            final columns = ResponsiveLayout.adaptiveGridCount(
+                              context,
+                              compact: 1,
+                              medium: 2,
+                              expanded: 3,
+                            );
+                            return GridView.builder(
+                              itemCount: services.length,
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: columns,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 12,
+                                    childAspectRatio: 1.45,
                                   ),
-                                ],
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(14),
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        _buildServiceImage(service),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                service.name.isEmpty
-                                                    ? 'Unnamed Service'
-                                                    : service.name,
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 16,
-                                                  color: Colors.black87,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                service.description.isEmpty
-                                                    ? 'No description provided'
-                                                    : service.description,
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.black54,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 10),
-                                              Row(
-                                                children: [
-                                                  Text(
-                                                    'Rs. ${_formatPrice(service.price)}',
-                                                    style: const TextStyle(
-                                                      color: Colors.teal,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 15,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 10),
-                                                  _availabilityChip(
-                                                    service.isAvailable,
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 14),
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: _isOwnerView
-                                          ? OutlinedButton.icon(
-                                              onPressed: null,
-                                              icon: const Icon(
-                                                Icons.storefront_outlined,
-                                              ),
-                                              label: const Text(
-                                                'Visible in your catalog',
-                                              ),
-                                            )
-                                          : ElevatedButton.icon(
-                                              onPressed:
-                                                  service.isAvailable &&
-                                                      _businessCanReceiveOrders
-                                                  ? () => _handleAddToCart(
-                                                      service,
-                                                    )
-                                                  : null,
-                                              icon: Icon(
-                                                _businessCanReceiveOrders
-                                                    ? Icons.add_shopping_cart
-                                                    : Icons.lock_outline,
-                                              ),
-                                              label: Text(
-                                                _businessCanReceiveOrders
-                                                    ? 'Add to cart'
-                                                    : 'Ordering unavailable',
-                                              ),
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.teal,
-                                                foregroundColor: Colors.white,
-                                                disabledBackgroundColor:
-                                                    Colors.grey.shade300,
-                                                disabledForegroundColor:
-                                                    Colors.grey.shade600,
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      vertical: 14,
-                                                    ),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(14),
-                                                ),
-                                              ),
-                                            ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              itemBuilder: (context, index) =>
+                                  _buildServiceCard(services[index]),
                             );
                           },
                         ),
@@ -431,6 +327,112 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => _brokenImage(),
             ),
+    );
+  }
+
+  Widget _buildServiceCard(ServiceModel service) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.teal.shade100, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildServiceImage(service),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        service.name.isEmpty ? 'Unnamed Service' : service.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        service.description.isEmpty
+                            ? 'No description provided'
+                            : service.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 14, color: Colors.black54),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Text(
+                            'Rs. ${_formatPrice(service.price)}',
+                            style: const TextStyle(
+                              color: Colors.teal,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          _availabilityChip(service.isAvailable),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: _isOwnerView
+                  ? OutlinedButton.icon(
+                      onPressed: null,
+                      icon: const Icon(Icons.storefront_outlined),
+                      label: const Text('Visible in your catalog'),
+                    )
+                  : ElevatedButton.icon(
+                      onPressed: service.isAvailable && _businessCanReceiveOrders
+                          ? () => _handleAddToCart(service)
+                          : null,
+                      icon: Icon(
+                        _businessCanReceiveOrders
+                            ? Icons.add_shopping_cart
+                            : Icons.lock_outline,
+                      ),
+                      label: Text(
+                        _businessCanReceiveOrders
+                            ? 'Add to cart'
+                            : 'Ordering unavailable',
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.grey.shade300,
+                        disabledForegroundColor: Colors.grey.shade600,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

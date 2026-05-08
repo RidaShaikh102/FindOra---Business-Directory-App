@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:findora/services/local_storage_service.dart';
 import 'package:findora/services/analytics_service.dart';
+import 'package:findora/widgets/responsive_layout.dart';
 
 class ManageReviewsScreen extends StatefulWidget {
   const ManageReviewsScreen({super.key});
@@ -128,42 +129,65 @@ class _ManageReviewsScreenState extends State<ManageReviewsScreen> {
     return RefreshIndicator(
       onRefresh: _loadReviews,
       color: Colors.teal,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(12),
-        itemCount: _reviews.length,
-        itemBuilder: (context, index) {
-          final review = _reviews[index];
-          final hidden = review['hidden'] == true;
-          return Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(color: Colors.teal, width: 1),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isDesktop = ResponsiveLayout.isMediumOrLarger(context);
+          if (!isDesktop) {
+            return ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: _reviews.length,
+              itemBuilder: (context, index) =>
+                  _buildReviewCard(_reviews[index], index),
+            );
+          }
+          final columns = ResponsiveLayout.adaptiveGridCount(
+            context,
+            compact: 1,
+            medium: 2,
+            expanded: 3,
+          );
+          return GridView.builder(
+            padding: const EdgeInsets.all(12),
+            itemCount: _reviews.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 1.95,
             ),
-            child: ListTile(
-              title: Text(review['businessName'] ?? 'Business'),
-              subtitle: Text(
-                '${review['userEmail'] ?? ''}\n${review['reviewText'] ?? ''}\nRating: ${review['rating'] ?? 0}',
-              ),
-              isThreeLine: true,
-              trailing: PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'toggle') {
-                    _toggleHidden(index);
-                  } else if (value == 'delete') {
-                    _deleteReview(index);
-                  }
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'toggle',
-                    child: Text(hidden ? 'Unhide' : 'Hide'),
-                  ),
-                  const PopupMenuItem(value: 'delete', child: Text('Delete')),
-                ],
-              ),
-            ),
+            itemBuilder: (context, index) => _buildReviewCard(_reviews[index], index),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildReviewCard(Map<String, dynamic> review, int index) {
+    final hidden = review['hidden'] == true;
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Colors.teal, width: 1),
+      ),
+      child: ListTile(
+        title: Text(review['businessName'] ?? 'Business'),
+        subtitle: Text(
+          '${review['userEmail'] ?? ''}\n${review['reviewText'] ?? ''}\nRating: ${review['rating'] ?? 0}',
+        ),
+        isThreeLine: true,
+        trailing: PopupMenuButton<String>(
+          onSelected: (value) {
+            if (value == 'toggle') {
+              _toggleHidden(index);
+            } else if (value == 'delete') {
+              _deleteReview(index);
+            }
+          },
+          itemBuilder: (context) => [
+            PopupMenuItem(value: 'toggle', child: Text(hidden ? 'Unhide' : 'Hide')),
+            const PopupMenuItem(value: 'delete', child: Text('Delete')),
+          ],
+        ),
       ),
     );
   }

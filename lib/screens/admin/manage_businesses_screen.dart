@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:findora/services/local_storage_service.dart';
 import 'package:findora/services/analytics_service.dart';
+import 'package:findora/widgets/responsive_layout.dart';
 
 class ManageBusinessesScreen extends StatefulWidget {
   const ManageBusinessesScreen({super.key});
@@ -127,48 +128,64 @@ class _ManageBusinessesScreenState extends State<ManageBusinessesScreen> {
                         : 'No businesses found.',
                   ),
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: _filteredBusinesses.length,
-                  itemBuilder: (context, index) {
-                    final item = _filteredBusinesses[index];
-                    final status = item['status'] ?? 'approved';
-                    return Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: const BorderSide(color: Colors.teal, width: 1),
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isDesktop = ResponsiveLayout.isMediumOrLarger(context);
+                    final columns = ResponsiveLayout.adaptiveGridCount(
+                      context,
+                      compact: 1,
+                      medium: 2,
+                      expanded: 3,
+                    );
+                    if (!isDesktop) {
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: _filteredBusinesses.length,
+                        itemBuilder: (context, index) =>
+                            _buildBusinessCard(_filteredBusinesses[index], index),
+                      );
+                    }
+                    return GridView.builder(
+                      padding: const EdgeInsets.all(12),
+                      itemCount: _filteredBusinesses.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: columns,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 2.3,
                       ),
-                      child: ListTile(
-                        title: Text(item['name'] ?? 'Unnamed Business'),
-                        subtitle: Text(
-                          '${item['category'] ?? ''} • ${item['subcategory'] ?? ''}\nStatus: $status',
-                        ),
-                        isThreeLine: true,
-                        trailing: PopupMenuButton<String>(
-                          onSelected: (value) {
-                            _setStatus(index, value);
-                          },
-                          itemBuilder: (context) => const [
-                            PopupMenuItem(
-                              value: 'approved',
-                              child: Text('Approve'),
-                            ),
-                            PopupMenuItem(
-                              value: 'rejected',
-                              child: Text('Reject'),
-                            ),
-                            PopupMenuItem(
-                              value: 'pending',
-                              child: Text('Set Pending'),
-                            ),
-                          ],
-                        ),
-                      ),
+                      itemBuilder: (context, index) =>
+                          _buildBusinessCard(_filteredBusinesses[index], index),
                     );
                   },
                 ),
         ),
       ],
+    );
+  }
+
+  Widget _buildBusinessCard(Map<String, dynamic> item, int index) {
+    final status = item['status'] ?? 'approved';
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Colors.teal, width: 1),
+      ),
+      child: ListTile(
+        title: Text(item['name'] ?? 'Unnamed Business'),
+        subtitle: Text(
+          '${item['category'] ?? ''} • ${item['subcategory'] ?? ''}\nStatus: $status',
+        ),
+        isThreeLine: true,
+        trailing: PopupMenuButton<String>(
+          onSelected: (value) => _setStatus(index, value),
+          itemBuilder: (context) => const [
+            PopupMenuItem(value: 'approved', child: Text('Approve')),
+            PopupMenuItem(value: 'rejected', child: Text('Reject')),
+            PopupMenuItem(value: 'pending', child: Text('Set Pending')),
+          ],
+        ),
+      ),
     );
   }
 }
