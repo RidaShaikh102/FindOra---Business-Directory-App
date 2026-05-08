@@ -228,19 +228,11 @@ class _DetailScreenState extends State<DetailScreen> {
 
   Future<void> _loadAverageRating() async {
     try {
-      final reviews = await _storageService.getReviewsByBusiness(
+      final average = await _storageService.getAverageRatingForBusiness(
         widget.item['id'] ?? '',
-        limit: 1000,
-      ); // Get all reviews for average
-      if (reviews.isNotEmpty) {
-        final totalRating = reviews.fold<double>(
-          0.0,
-          (sum, review) => sum + (review['rating'] ?? 0.0),
-        );
-        final average = totalRating / reviews.length;
-        if (mounted) {
-          setState(() => _cachedAverageRating = average);
-        }
+      );
+      if (mounted) {
+        setState(() => _cachedAverageRating = average);
       }
     } catch (e) {
       AppLogger.e('Error loading average rating: $e');

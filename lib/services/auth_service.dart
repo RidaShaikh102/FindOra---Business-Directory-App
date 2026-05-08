@@ -17,6 +17,8 @@ class AuthService {
   Future<void>? _googleInit;
 
   String? _cachedRole;
+  String? _cachedUserDocUid;
+  Map<String, dynamic>? _cachedUserDoc;
 
   Future<bool> login(String email, String password, {bool save = false}) async {
     if (email.isEmpty || password.isEmpty) return false;
@@ -109,7 +111,7 @@ class AuthService {
   }
 
   Future<void> logout() async {
-    _cachedRole = null;
+    _clearCachedUserState();
     await _auth.signOut();
     if (!kIsWeb) {
       await _googleSignIn.signOut();
@@ -124,15 +126,56 @@ class AuthService {
     return _auth.currentUser?.email;
   }
 
+  Future<String?> getCurrentUserId() async {
+    return _auth.currentUser?.uid;
+  }
+
+  /// City used for marketplace delivery rules (e.g. Sukkur local vs courier).
+  Future<String?> getUserCity() async {
+    final data = await _getCurrentUserDoc();
+    final city = data?['city']?.toString().trim();
+    if (city == null || city.isEmpty) return null;
+    return city;
+  }
+
+  Future<void> setUserCity(String city) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    final normalized = city.trim();
+    await _firestore.collection('users').doc(user.uid).set({
+      'city': normalized,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+    _mergeCachedUserDoc({
+      'city': normalized,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, uid: user.uid);
+  }
+
+  Future<String?> getCurrentUserName() async {
+    final user = _auth.currentUser;
+    if (user == null) return null;
+
+    final displayName = user.displayName?.trim();
+    if (displayName != null && displayName.isNotEmpty) {
+      return displayName;
+    }
+
+    final data = await _getCurrentUserDoc();
+    final name = data?['name']?.toString().trim();
+    if (name != null && name.isNotEmpty) {
+      return name;
+    }
+
+    return _nameFromEmail(user.email ?? '');
+  }
+
   Future<String?> getCurrentUserRole() async {
     if (_cachedRole != null) return _cachedRole;
     final user = _auth.currentUser;
     if (user == null) return null;
-    final doc = await _firestore.collection('users').doc(user.uid).get();
-    if (doc.exists) {
-      final docData = doc.data();
-      if (docData == null) return null;
-      final data = Map<String, dynamic>.from(docData);
+    final data = await _getCurrentUserDoc();
+    if (data != null) {
       if (data['isBlocked'] == true) {
         await logout();
         return null;
@@ -155,6 +198,11 @@ class AuthService {
       data['uid'] = doc.id;
       return data;
     }).toList();
+  }
+
+  Future<int> getUserCount() async {
+    final snapshot = await _firestore.collection('users').count().get();
+    return snapshot.count ?? 0;
   }
 
   Future<void> saveUsers(List<Map<String, dynamic>> users) async {
@@ -248,6 +296,7 @@ class AuthService {
       };
       await ref.set(data, SetOptions(merge: true));
       _cachedRole = resolvedRole;
+      _mergeCachedUserDoc(data, uid: user.uid);
       return data;
     }
 
@@ -274,7 +323,9 @@ class AuthService {
 
     final effectiveRole = (data['role'] ?? resolvedRole ?? 'user').toString();
     _cachedRole = effectiveRole;
-    return {...data, ...updates, 'role': effectiveRole, 'email': email};
+    final merged = {...data, ...updates, 'role': effectiveRole, 'email': email};
+    _mergeCachedUserDoc(merged, uid: user.uid);
+    return merged;
   }
 
   Future<void> _ensureGoogleInitialized() async {
@@ -291,5 +342,44 @@ class AuthService {
   String _nameFromEmail(String email) {
     if (email.isEmpty || !email.contains('@')) return 'User';
     return email.split('@').first;
+  }
+
+  Future<Map<String, dynamic>?> _getCurrentUserDoc({
+    bool forceRefresh = false,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      _cachedUserDoc = null;
+      _cachedUserDocUid = null;
+      return null;
+    }
+
+    if (!forceRefresh &&
+        _cachedUserDocUid == user.uid &&
+        _cachedUserDoc != null) {
+      return Map<String, dynamic>.from(_cachedUserDoc!);
+    }
+
+    final doc = await _firestore.collection('users').doc(user.uid).get();
+    _cachedUserDocUid = user.uid;
+    if (!doc.exists || doc.data() == null) {
+      _cachedUserDoc = null;
+      return null;
+    }
+
+    _cachedUserDoc = Map<String, dynamic>.from(doc.data()!);
+    return Map<String, dynamic>.from(_cachedUserDoc!);
+  }
+
+  void _mergeCachedUserDoc(Map<String, dynamic> data, {required String uid}) {
+    _cachedUserDocUid = uid;
+    final merged = <String, dynamic>{...?_cachedUserDoc, ...data};
+    _cachedUserDoc = merged;
+  }
+
+  void _clearCachedUserState() {
+    _cachedRole = null;
+    _cachedUserDocUid = null;
+    _cachedUserDoc = null;
   }
 }

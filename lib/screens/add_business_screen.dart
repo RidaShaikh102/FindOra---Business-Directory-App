@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:maps_launcher/maps_launcher.dart';
+import 'package:findora/config/marketplace_config.dart';
 import 'package:findora/services/auth_service.dart';
 import 'package:findora/services/analytics_service.dart';
 import 'package:findora/services/local_storage_service.dart';
@@ -32,6 +33,7 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
   String _category = 'Restaurants';
   String _subcategory = 'Restaurants';
   final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _cityController = TextEditingController();
   final TextEditingController _contactController = TextEditingController();
   final TextEditingController _whatsappController = TextEditingController();
   final TextEditingController _websiteController = TextEditingController();
@@ -62,6 +64,7 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
   @override
   void initState() {
     super.initState();
+    _cityController.text = kMarketplaceLocalCity;
     _subcategory = categoryMap[_category]!.first;
     if (widget.existingBusiness != null) {
       _populateExistingData();
@@ -79,6 +82,10 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
     _category = business['category'] ?? 'Restaurants';
     _subcategory = business['subcategory'] ?? 'Restaurants';
     _addressController.text = business['address'] ?? '';
+    _cityController.text =
+        (business['city']?.toString().trim().isNotEmpty == true)
+        ? business['city'].toString()
+        : kMarketplaceLocalCity;
     _contactController.text = business['contact'] ?? '';
     _whatsappController.text = business['whatsapp'] ?? '';
     _websiteController.text = business['website'] ?? '';
@@ -257,6 +264,9 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
       'category': _category,
       'subcategory': _subcategory,
       'address': _addressController.text.trim(),
+      'city': _cityController.text.trim().isEmpty
+          ? kMarketplaceLocalCity
+          : _cityController.text.trim(),
       'contact': _contactController.text.trim(),
       'whatsapp': _whatsappController.text.trim(),
       'website': _websiteController.text.trim(),
@@ -288,10 +298,7 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
       } else {
         // Check for duplicates
         final businessName = (businessData['name'] as String).trim();
-        final allBusinesses = await storage.getBusinesses();
-        final duplicateExists = allBusinesses.any(
-          (b) => (b['name'] ?? '').toString() == businessName,
-        );
+        final duplicateExists = await storage.businessNameExists(businessName);
 
         if (duplicateExists) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -351,6 +358,7 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
   void dispose() {
     _nameController.dispose();
     _addressController.dispose();
+    _cityController.dispose();
     _contactController.dispose();
     _whatsappController.dispose();
     _websiteController.dispose();
@@ -546,6 +554,8 @@ class _AddBusinessScreenState extends State<AddBusinessScreen> {
         'Address${_category == 'Online' ? '' : ' *'}',
         _category != 'Online',
       ),
+      const SizedBox(height: 12),
+      _buildTextField(_cityController, 'Business city (delivery zone) *', true),
       const SizedBox(height: 12),
       _buildTextField(
         _contactController,

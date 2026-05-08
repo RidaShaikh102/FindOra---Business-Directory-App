@@ -54,11 +54,9 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
 
     try {
       final localStorage = LocalStorageService();
-      final businesses = await localStorage.getBusinesses();
-      final business = businesses.firstWhere(
-        (b) => b['id'] == widget.businessId,
-        orElse: () => {},
-      );
+      final business =
+          await localStorage.getBusinessById(widget.businessId) ??
+          <String, dynamic>{};
       final ownerEmail = business['ownerEmail'] ?? '';
       final reviewData = {
         'id': DateTime.now().millisecondsSinceEpoch.toString(),

@@ -47,25 +47,22 @@ class _UserReviewsScreenState extends State<UserReviewsScreen> {
       }
 
       AppLogger.i('Loading businesses for owner: $loggedInEmail');
-      // Load all businesses
-      final allBusinesses = await _storageService.getBusinesses();
-      userBusinesses = allBusinesses
-          .where((b) => b['ownerEmail'] == loggedInEmail)
-          .toList();
+      userBusinesses = await _storageService.getBusinessesByOwner(
+        loggedInEmail,
+      );
       AppLogger.i('Found ${userBusinesses.length} businesses for user');
 
-      AppLogger.i('Loading ALL reviews');
-      // Load all reviews
-      final allReviews = await _storageService.getReviews();
+      AppLogger.i('Loading reviews for owner businesses');
+      final allReviews = await _storageService.getReviewsByOwnerEmail(
+        loggedInEmail,
+      );
 
       // Group reviews by business name
       businessReviews.clear();
       for (var business in userBusinesses) {
         final businessName = business['name'] ?? 'Unnamed Business';
         businessReviews[businessName] = allReviews
-            .where(
-              (r) => r['businessName'] == businessName && r['hidden'] != true,
-            )
+            .where((r) => r['businessName'] == businessName)
             .toList();
       }
 

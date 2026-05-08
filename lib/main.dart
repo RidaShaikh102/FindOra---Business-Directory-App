@@ -10,6 +10,7 @@ import 'package:findora/providers/auth_provider.dart';
 import 'package:findora/services/splash_service.dart';
 import 'package:findora/services/deep_link_service.dart';
 import 'package:findora/services/local_storage_service.dart';
+import 'package:findora/screens/shared_profile_screen.dart';
 
 Future<void> main() async {
   final prefs = await SplashService.initializeApp();
@@ -55,6 +56,8 @@ class _FindOraAppState extends State<FindOraApp> {
         uri.pathSegments[0] == 'business') {
       final businessId = uri.pathSegments[1];
       _navigateToBusiness(businessId);
+    } else if (uri.pathSegments.isNotEmpty && uri.pathSegments[0] == 'profile') {
+      _navigateToSharedProfile(uri);
     }
   }
 
@@ -63,18 +66,35 @@ class _FindOraAppState extends State<FindOraApp> {
     await Future.delayed(const Duration(milliseconds: 500));
 
     if (_navigatorKey.currentState != null) {
-      // Fetch business data
       final storage = LocalStorageService();
-      final businesses = await storage.getBusinesses();
-      final business = businesses.firstWhere(
-        (b) => b['id'] == businessId,
-        orElse: () => <String, dynamic>{},
-      );
+      final business =
+          await storage.getBusinessById(businessId) ?? <String, dynamic>{};
 
       if (business.isNotEmpty) {
         _navigatorKey.currentState!.pushNamed('/business', arguments: business);
       }
     }
+  }
+
+  Future<void> _navigateToSharedProfile(Uri uri) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (_navigatorKey.currentState == null) return;
+
+    final usernameFromPath = uri.pathSegments.length >= 2
+        ? Uri.decodeComponent(uri.pathSegments[1])
+        : '';
+    final username = usernameFromPath.isNotEmpty
+        ? usernameFromPath
+        : (uri.queryParameters['username'] ?? 'FindOra User');
+    final role = uri.queryParameters['role'] ?? '';
+    final city = uri.queryParameters['city'] ?? '';
+
+    _navigatorKey.currentState!.push(
+      MaterialPageRoute(
+        builder: (_) =>
+            SharedProfileScreen(username: username, role: role, city: city),
+      ),
+    );
   }
 
   @override

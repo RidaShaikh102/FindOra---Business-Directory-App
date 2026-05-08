@@ -25,16 +25,11 @@ class _MyPostedReviewsScreenState extends State<MyPostedReviewsScreen> {
 
   Future<void> _loadMyReviews() async {
     try {
-      final allReviews = await _storageService.getReviews();
+      final allReviews = await _storageService.getReviewsByUserEmail(
+        widget.loggedInEmail,
+      );
       setState(() {
-        myReviews =
-            allReviews
-                .where((review) => review['userEmail'] == widget.loggedInEmail)
-                .toList()
-              ..sort(
-                (a, b) =>
-                    (b['timestamp'] as int).compareTo(a['timestamp'] as int),
-              );
+        myReviews = allReviews;
         _isLoading = false;
       });
     } catch (e) {

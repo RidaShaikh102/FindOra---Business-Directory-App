@@ -5,6 +5,8 @@ import 'package:findora/screens/help_center.dart';
 import 'package:findora/screens/home_screen.dart';
 import 'package:findora/screens/login_screen.dart';
 import 'package:findora/screens/map.dart';
+import 'package:findora/screens/my_orders_screen.dart';
+import 'package:findora/screens/owner/manage_orders_screen.dart';
 import 'package:findora/screens/privacy_policy.dart';
 import 'package:findora/screens/profile_screen.dart';
 import 'package:findora/screens/saved_businesses.dart';
@@ -186,8 +188,11 @@ class _MainScreenState extends State<MainScreen> {
                 padding: EdgeInsets.zero,
                 children: [
                   _drawerTile(Icons.person, 'My Profile', context),
+                  _drawerTile(Icons.receipt_outlined, 'My Orders', context),
                   if (widget.userRole == 'owner')
                     _drawerTile(Icons.store, 'Owner Panel', context),
+                  if (widget.userRole == 'owner')
+                    _drawerTile(Icons.receipt_long, 'Manage Orders', context),
                   _drawerTile(Icons.privacy_tip, 'Privacy Policy', context),
                   _drawerTile(Icons.help_outline, 'Help Center', context),
                   _drawerTile(Icons.contact_mail, 'Contact (FindOra)', context),
@@ -206,9 +211,7 @@ class _MainScreenState extends State<MainScreen> {
   ListTile _drawerTile(IconData icon, String title, BuildContext context) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
@@ -230,10 +233,20 @@ class _MainScreenState extends State<MainScreen> {
           setState(() {
             _selectedIndex = widget.userRole == 'owner' ? 5 : 4;
           });
+        } else if (title == 'My Orders') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const MyOrdersScreen()),
+          );
         } else if (title == 'Owner Panel') {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const OwnerDashboardScreen()),
+          );
+        } else if (title == 'Manage Orders') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ManageOrdersScreen()),
           );
         } else if (title == 'Help Center') {
           Navigator.push(

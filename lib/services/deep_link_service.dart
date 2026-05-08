@@ -10,6 +10,7 @@ class DeepLinkService {
   final _appLinks = AppLinks();
   StreamSubscription? _sub;
   Function(Uri)? _onLinkReceived;
+  static const String _webBaseUrl = 'https://findora-40f21.web.app';
 
   void init(Function(Uri) onLinkReceived) {
     _onLinkReceived = onLinkReceived;
@@ -50,11 +51,29 @@ class DeepLinkService {
   }
 
   static String generateBusinessWebLink(String businessId) {
-    return 'https://findora.app/business/$businessId';
+    return '$_webBaseUrl/business/$businessId';
   }
 
   // Create a shareable link (prefer web link for better compatibility)
   static String generateShareableBusinessLink(String businessId) {
     return generateBusinessWebLink(businessId);
+  }
+
+  static String generateShareableProfileLink({
+    required String username,
+    required String role,
+    required String city,
+  }) {
+    final normalizedUsername = username.trim().isEmpty
+        ? 'findora-user'
+        : username.trim();
+    final usernameSlug = Uri.encodeComponent(normalizedUsername);
+    final uri = Uri.parse(
+      '$_webBaseUrl/profile/$usernameSlug',
+    ).replace(queryParameters: <String, String>{
+      'role': role,
+      'city': city,
+    });
+    return uri.toString();
   }
 }

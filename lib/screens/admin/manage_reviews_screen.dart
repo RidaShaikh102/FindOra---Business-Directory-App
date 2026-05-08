@@ -13,6 +13,7 @@ class _ManageReviewsScreenState extends State<ManageReviewsScreen> {
   final LocalStorageService _storageService = LocalStorageService();
   List<Map<String, dynamic>> _reviews = [];
   bool _loading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -21,11 +22,25 @@ class _ManageReviewsScreenState extends State<ManageReviewsScreen> {
   }
 
   Future<void> _loadReviews() async {
-    final list = await _storageService.getReviews();
     setState(() {
-      _reviews = list;
-      _loading = false;
+      _loading = true;
+      _errorMessage = null;
     });
+    try {
+      final list = await _storageService.getReviews(includeHidden: true);
+      if (!mounted) return;
+      setState(() {
+        _reviews = list;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _errorMessage =
+            'Unable to load reviews right now. Pull down or tap retry.';
+      });
+    }
   }
 
   Future<void> _toggleHidden(int index) async {
@@ -55,46 +70,101 @@ class _ManageReviewsScreenState extends State<ManageReviewsScreen> {
       return const Center(child: CircularProgressIndicator(color: Colors.teal));
     }
 
-    if (_reviews.isEmpty) {
-      return const Center(child: Text('No reviews found.'));
+    if (_errorMessage != null) {
+      return RefreshIndicator(
+        onRefresh: _loadReviews,
+        color: Colors.teal,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(
+              height: 320,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _errorMessage!,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.grey.shade700,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: _loadReviews,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal.shade700,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: _reviews.length,
-      itemBuilder: (context, index) {
-        final review = _reviews[index];
-        final hidden = review['hidden'] == true;
-        return Card(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: const BorderSide(color: Colors.teal, width: 1),
-          ),
-          child: ListTile(
-            title: Text(review['businessName'] ?? 'Business'),
-            subtitle: Text(
-              '${review['userEmail'] ?? ''}\n${review['reviewText'] ?? ''}\nRating: ${review['rating'] ?? 0}',
+    if (_reviews.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _loadReviews,
+        color: Colors.teal,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(height: 320, child: Center(child: Text('No reviews found.'))),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadReviews,
+      color: Colors.teal,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(12),
+        itemCount: _reviews.length,
+        itemBuilder: (context, index) {
+          final review = _reviews[index];
+          final hidden = review['hidden'] == true;
+          return Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Colors.teal, width: 1),
             ),
-            isThreeLine: true,
-            trailing: PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'toggle') {
-                  _toggleHidden(index);
-                } else if (value == 'delete') {
-                  _deleteReview(index);
-                }
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'toggle',
-                  child: Text(hidden ? 'Unhide' : 'Hide'),
-                ),
-                const PopupMenuItem(value: 'delete', child: Text('Delete')),
-              ],
+            child: ListTile(
+              title: Text(review['businessName'] ?? 'Business'),
+              subtitle: Text(
+                '${review['userEmail'] ?? ''}\n${review['reviewText'] ?? ''}\nRating: ${review['rating'] ?? 0}',
+              ),
+              isThreeLine: true,
+              trailing: PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'toggle') {
+                    _toggleHidden(index);
+                  } else if (value == 'delete') {
+                    _deleteReview(index);
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'toggle',
+                    child: Text(hidden ? 'Unhide' : 'Hide'),
+                  ),
+                  const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

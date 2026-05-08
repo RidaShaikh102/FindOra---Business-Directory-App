@@ -49,3 +49,10 @@ app.*.map.json
 
 # Firebase configuration
 android/app/google-services.json
+
+# Firebase Functions (Node)
+functions/node_modules/
+functions/lib/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

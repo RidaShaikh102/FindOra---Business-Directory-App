@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/local_storage_service.dart';
 
 class DetailReviewsList extends StatefulWidget {
@@ -54,12 +53,10 @@ class _DetailReviewsListState extends State<DetailReviewsList> {
       }
 
       final lastTimestamp = _pagingController.itemList?.isNotEmpty == true
-          ? Timestamp.fromMillisecondsSinceEpoch(
-              _pagingController.itemList!.last['timestamp'] as int,
-            )
+          ? _pagingController.itemList!.last['timestamp'] as int
           : null;
 
-      final newItems = await LocalStorageService().getReviewsByBusiness(
+      final newItems = await LocalStorageService().getReviewPageByBusiness(
         widget.businessId,
         startAfter: lastTimestamp,
         limit: _pageSize,

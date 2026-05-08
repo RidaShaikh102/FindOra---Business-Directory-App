@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:findora/providers/auth_form_providers.dart';
+
 import '../services/analytics_service.dart';
+import '../services/auth_service.dart';
 import 'role_gate.dart';
 import 'signup_screen.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
-  bool _obscurePassword = true;
 
   static const Color primaryColor = Color(0xFF137B75);
   static const Color secondaryColor = Color(0xFF003049);
@@ -33,58 +35,73 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    setState(() => _isLoading = true);
+    ref.read(loginFormProvider.notifier).setLoading(true);
 
     try {
       final success = await AuthService().login(email, password);
+      if (!mounted) return;
+
       if (success) {
         await AnalyticsService.logAction('login');
         if (!mounted) return;
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const RoleGate()),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Invalid email or password")),
+          const SnackBar(content: Text('Invalid email or password')),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) {
+        ref.read(loginFormProvider.notifier).setLoading(false);
+      }
     }
-    if (mounted) setState(() => _isLoading = false);
   }
 
   Future<void> _signInWithGoogle() async {
-    setState(() => _isLoading = true);
+    ref.read(loginFormProvider.notifier).setLoading(true);
+
     try {
       final success = await AuthService().signInWithGoogle();
+      if (!mounted) return;
+
       if (success) {
         await AnalyticsService.logAction('login_google');
         if (!mounted) return;
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const RoleGate()),
         );
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Google sign-in failed.")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Google sign-in failed.')),
+        );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) {
+        ref.read(loginFormProvider.notifier).setLoading(false);
+      }
     }
-    if (mounted) setState(() => _isLoading = false);
   }
 
   InputDecoration _inputDecoration(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
-      prefixIcon: Icon(icon, color: const Color.fromRGBO(0, 48, 73, 1)),
+      prefixIcon: Icon(icon, color: secondaryColor),
       filled: true,
       fillColor: Colors.white,
       border: OutlineInputBorder(
@@ -97,22 +114,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
+    final formState = ref.watch(loginFormProvider);
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final titleFontSize = MediaQuery.textScalerOf(context).scale(28);
 
-    // Mobile layout only for max width 500
     if (screenWidth > 500) {
-      return Scaffold(
+      return const Scaffold(
         body: Center(
           child: Text(
-            "This mobile layout is only for screens ≤ 500px",
-            style: TextStyle(fontSize: 18, color: secondaryColor),
+            'This mobile layout is only for screens <= 500px',
             textAlign: TextAlign.center,
           ),
         ),
       );
     }
-
-    final scale = MediaQuery.of(context).textScaleFactor;
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -122,28 +137,27 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Logo + App Name
               Column(
                 children: [
                   Container(
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    padding: const EdgeInsets.all(8),
                     child: Image.asset('lib/assets/logo.png', height: 60),
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    "FindOra",
+                    'FindOra',
                     style: TextStyle(
-                      fontSize: 28 * scale,
+                      fontSize: titleFontSize,
                       fontWeight: FontWeight.bold,
                       color: secondaryColor,
                     ),
                   ),
                   const SizedBox(height: 24),
                   const Text(
-                    "Welcome Back!",
+                    'Welcome Back!',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w600,
@@ -154,49 +168,47 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 30),
                 ],
               ),
-
               Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Email
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: _inputDecoration("Email", Icons.email),
-                      validator: (value) => value != null && value.contains("@")
+                      decoration: _inputDecoration('Email', Icons.email),
+                      validator: (value) =>
+                          value != null && value.contains('@')
                           ? null
-                          : "Enter a valid email",
+                          : 'Enter a valid email',
                     ),
                     const SizedBox(height: 16),
-
-                    // Password
                     TextFormField(
                       controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      decoration: _inputDecoration("Password", Icons.lock)
-                          .copyWith(
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                              ),
-                              onPressed: () => setState(
-                                () => _obscurePassword = !_obscurePassword,
-                              ),
-                            ),
+                      obscureText: formState.obscurePassword,
+                      decoration: _inputDecoration(
+                        'Password',
+                        Icons.lock,
+                      ).copyWith(
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            formState.obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
                           ),
-                      validator: (value) => value != null && value.length >= 6
+                          onPressed: () => ref
+                              .read(loginFormProvider.notifier)
+                              .toggleObscure(),
+                        ),
+                      ),
+                      validator: (value) =>
+                          value != null && value.length >= 6
                           ? null
-                          : "Password must be at least 6 characters",
+                          : 'Password must be at least 6 characters',
                     ),
                     const SizedBox(height: 24),
-
-                    // Login Button
                     ElevatedButton(
-                      onPressed: _isLoading ? null : _login,
+                      onPressed: formState.isLoading ? null : _login,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryColor,
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -204,10 +216,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
+                      child: formState.isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
+                              ),
+                            )
                           : const Text(
-                              "Log In",
+                              'Log In',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -215,15 +234,14 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                     ),
                     const SizedBox(height: 20),
-
                     OutlinedButton.icon(
-                      onPressed: _isLoading ? null : _signInWithGoogle,
+                      onPressed: formState.isLoading ? null : _signInWithGoogle,
                       icon: const Icon(
                         Icons.g_mobiledata,
                         color: secondaryColor,
                       ),
                       label: const Text(
-                        "Continue with Google",
+                        'Continue with Google',
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       style: OutlinedButton.styleFrom(
@@ -233,8 +251,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-
-                    // Navigate to SignUp
                     Center(
                       child: TextButton(
                         onPressed: () => Navigator.pushReplacement(
@@ -257,5 +273,12 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 }

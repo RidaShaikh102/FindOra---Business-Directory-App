@@ -30,10 +30,27 @@ class DetailHeroImage extends StatelessWidget {
                     color: Colors.grey[300],
                     child: const Center(child: CircularProgressIndicator()),
                   ),
-                  errorWidget: (context, url, error) =>
-                      Image.asset('lib/assets/logo.png', fit: BoxFit.cover),
+                  errorWidget: (context, url, error) => Container(
+                    width: double.infinity,
+                    height: double.infinity,
+                    color: Colors.grey[300],
+                    child: Icon(
+                      Icons.image_not_supported_outlined,
+                      size: 100,
+                      color: Colors.grey[600],
+                    ),
+                  ),
                 )
-              : Image.asset('lib/assets/logo.png', fit: BoxFit.cover),
+              : Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  color: Colors.grey[300],
+                  child: Icon(
+                    Icons.image_not_supported_outlined,
+                    size: 100,
+                    color: Colors.grey[600],
+                  ),
+                ),
         ),
         Container(
           height: 350,

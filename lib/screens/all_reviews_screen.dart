@@ -28,19 +28,11 @@ class _AllReviewsScreenState extends State<AllReviewsScreen> {
   }
 
   Future<void> _loadReviews() async {
-    final allReviews = await _storageService.getReviews();
+    final allReviews = await _storageService.getAllReviewsByBusiness(
+      widget.businessId,
+    );
     setState(() {
-      reviews =
-          allReviews
-              .where(
-                (r) =>
-                    r['businessId'] == widget.businessId && r['hidden'] != true,
-              )
-              .toList()
-            ..sort(
-              (a, b) =>
-                  (b['timestamp'] as int).compareTo(a['timestamp'] as int),
-            );
+      reviews = allReviews;
     });
   }
 

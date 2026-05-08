@@ -1,10 +1,14 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:findora/services/supabase_service.dart';
-import 'package:findora/services/local_storage_service.dart';
-import 'services_screen.dart'; // Import your ServicesScreen
+
+import 'package:findora/models/service_model.dart';
 import 'package:findora/services/analytics_service.dart';
+import 'package:findora/services/local_storage_service.dart';
+import 'package:findora/services/supabase_service.dart';
+
+import 'services_screen.dart';
 
 class AddServiceScreen extends StatefulWidget {
   final String businessName;
@@ -29,11 +33,11 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
+  final LocalStorageService _storageService = LocalStorageService();
 
   File? _selectedImage;
   bool _isSaving = false;
-
-  final LocalStorageService _storageService = LocalStorageService();
+  bool _isAvailable = true;
 
   late String itemType;
   late String pluralLabel;
@@ -43,6 +47,14 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
     super.initState();
     _setDynamicLabels();
     AnalyticsService.logScreenView('AddServiceScreen');
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    descriptionController.dispose();
+    priceController.dispose();
+    super.dispose();
   }
 
   void _setDynamicLabels() {
@@ -76,7 +88,9 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
-    if (picked != null) setState(() => _selectedImage = File(picked.path));
+    if (picked != null) {
+      setState(() => _selectedImage = File(picked.path));
+    }
   }
 
   Future<String?> _uploadToSupabase(
@@ -84,7 +98,7 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
     String businessId,
     String serviceId,
   ) async {
-    return await SupabaseService.uploadServiceImage(
+    return SupabaseService.uploadServiceImage(
       imageFile: file,
       businessId: businessId,
       serviceId: serviceId,
@@ -101,59 +115,64 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
       final serviceId = DateTime.now().millisecondsSinceEpoch.toString();
       if (_selectedImage != null) {
         imageUrl =
-            (await _uploadToSupabase(
+            await _uploadToSupabase(
               _selectedImage!,
               widget.businessId,
               serviceId,
-            )) ??
+            ) ??
             '';
       }
 
-      final serviceData = {
-        'id': serviceId,
-        'name': nameController.text.trim(),
-        'description': descriptionController.text.trim(),
-        'price': double.tryParse(priceController.text.trim()) ?? 0,
-        'image': imageUrl,
-        'category': widget.businessCategory,
-        'createdAt': DateTime.now().millisecondsSinceEpoch,
-      };
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final service = ServiceModel(
+        id: serviceId,
+        businessId: widget.businessId,
+        businessName: widget.businessName,
+        ownerEmail: widget.ownerEmail,
+        name: nameController.text.trim(),
+        description: descriptionController.text.trim(),
+        price: double.parse(priceController.text.trim()),
+        image: imageUrl,
+        category: widget.businessCategory,
+        isAvailable: _isAvailable,
+        createdAt: now,
+        updatedAt: now,
+      );
 
-      await _storageService.saveService(widget.businessId, serviceData);
+      await _storageService.saveService(widget.businessId, service.toJson());
 
-      if (mounted) {
-        await AnalyticsService.logAction('add_service');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$itemType added successfully!'),
-            backgroundColor: Colors.teal,
+      if (!mounted) return;
+      await AnalyticsService.logAction('add_service');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$itemType added successfully!'),
+          backgroundColor: Colors.teal,
+        ),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ServicesScreen(
+            businessName: widget.businessName,
+            businessCategory: widget.businessCategory,
+            businessId: widget.businessId,
+            ownerEmail: widget.ownerEmail,
           ),
-        );
-
-        // Navigate to Services Screen for this business
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ServicesScreen(
-              businessName: widget.businessName,
-              businessCategory: widget.businessCategory,
-              businessId: widget.businessId,
-              ownerEmail: widget.ownerEmail,
-            ),
-          ),
-        );
-      }
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to add $itemType. Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to add $itemType. Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     } finally {
-      if (mounted) setState(() => _isSaving = false);
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
@@ -199,145 +218,175 @@ class _AddServiceScreenState extends State<AddServiceScreen> {
       body: Center(
         child: SizedBox(
           width: maxWidth,
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              /// Image Picker Card
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: Colors.teal, width: 1.5),
-                ),
-                elevation: 3,
-                child: GestureDetector(
-                  onTap: _pickImage,
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: _selectedImage == null
-                        ? Container(
-                            decoration: BoxDecoration(
-                              color: const Color(0x0D009688),
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: Colors.teal, width: 1.5),
+                  ),
+                  elevation: 3,
+                  child: GestureDetector(
+                    onTap: _pickImage,
+                    child: AspectRatio(
+                      aspectRatio: 1,
+                      child: _selectedImage == null
+                          ? Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0x0D009688),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.add_a_photo,
+                                      size: 40,
+                                      color: Colors.teal,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Add $itemType Image',
+                                      style: const TextStyle(
+                                        color: Colors.teal,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.add_a_photo,
-                                    size: 40,
-                                    color: Colors.teal,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    "Add $itemType Image",
-                                    style: const TextStyle(color: Colors.teal),
-                                  ),
-                                ],
+                              child: Image.file(
+                                _selectedImage!,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
                               ),
                             ),
-                          )
-                        : ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.file(
-                              _selectedImage!,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                            ),
-                          ),
+                    ),
                   ),
                 ),
-              ),
-
-              const SizedBox(height: 20),
-
-              /// Name Field
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: Colors.teal, width: 1),
-                ),
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                const SizedBox(height: 20),
+                _buildInputCard(
                   child: TextFormField(
                     controller: nameController,
                     decoration: InputDecoration(
-                      labelText: "$itemType Name",
+                      labelText: '$itemType Name',
                       border: InputBorder.none,
                     ),
-                    validator: (value) =>
-                        value!.isEmpty ? 'Enter $itemType name' : null,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Enter $itemType name';
+                      }
+                      return null;
+                    },
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-
-              /// Description Field
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: Colors.teal, width: 1),
-                ),
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                const SizedBox(height: 16),
+                _buildInputCard(
                   child: TextFormField(
                     controller: descriptionController,
                     maxLines: 3,
                     decoration: InputDecoration(
-                      labelText: "$itemType Description",
+                      labelText: '$itemType Description',
                       border: InputBorder.none,
                     ),
-                    validator: (value) =>
-                        value!.isEmpty ? 'Enter $itemType description' : null,
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Enter $itemType description';
+                      }
+                      return null;
+                    },
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-
-              /// Price Field
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: Colors.teal, width: 1),
-                ),
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                const SizedBox(height: 16),
+                _buildInputCard(
                   child: TextFormField(
                     controller: priceController,
-                    keyboardType: TextInputType.number,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: InputDecoration(
                       labelText: catPriceLabel(widget.businessCategory),
                       border: InputBorder.none,
                     ),
-                    validator: (value) =>
-                        value!.isEmpty ? 'Enter a valid price' : null,
+                    validator: (value) {
+                      final price = double.tryParse(value?.trim() ?? '');
+                      if (price == null || price <= 0) {
+                        return 'Enter a valid price';
+                      }
+                      return null;
+                    },
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
-
-              /// Save Button
-              ElevatedButton.icon(
-                onPressed: _isSaving ? null : _saveService,
-                icon: const Icon(Icons.save, color: Colors.white),
-                label: Text(
-                  'Save $itemType',
-                  style: const TextStyle(fontSize: 16, color: Colors.white),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                const SizedBox(height: 16),
+                Card(
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: Colors.teal, width: 1),
+                  ),
+                  elevation: 2,
+                  child: SwitchListTile(
+                    value: _isAvailable,
+                    activeThumbColor: Colors.teal,
+                    title: const Text('Available for orders'),
+                    subtitle: Text(
+                      _isAvailable
+                          ? 'Customers can add this item to cart.'
+                          : 'Keep it hidden from ordering for now.',
+                    ),
+                    onChanged: (value) {
+                      setState(() => _isAvailable = value);
+                    },
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: _isSaving ? null : _saveService,
+                  icon: _isSaving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.save, color: Colors.white),
+                  label: Text(
+                    _isSaving ? 'Saving...' : 'Save $itemType',
+                    style: const TextStyle(fontSize: 16, color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildInputCard({required Widget child}) {
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Colors.teal, width: 1),
+      ),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: child,
       ),
     );
   }

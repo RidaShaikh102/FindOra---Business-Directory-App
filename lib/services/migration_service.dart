@@ -51,18 +51,14 @@ class MigrationService {
   ) {
     final list = prefs.getStringList(key);
     if (list != null) {
-      return list
-          .map((e) => Map<String, dynamic>.from(jsonDecode(e)))
-          .toList();
+      return list.map((e) => Map<String, dynamic>.from(jsonDecode(e))).toList();
     }
 
     final raw = prefs.getString(key);
     if (raw == null || raw.isEmpty) return [];
     final decoded = jsonDecode(raw);
     if (decoded is List) {
-      return decoded
-          .map((e) => Map<String, dynamic>.from(e as Map))
-          .toList();
+      return decoded.map((e) => Map<String, dynamic>.from(e as Map)).toList();
     }
     return [];
   }
@@ -78,9 +74,7 @@ class MigrationService {
     return decoded.map(
       (k, v) => MapEntry(
         k,
-        (v as List)
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList(),
+        (v as List).map((e) => Map<String, dynamic>.from(e as Map)).toList(),
       ),
     );
   }
@@ -95,10 +89,16 @@ class MigrationService {
     WriteBatch batch = firestore.batch();
     int count = 0;
     for (final business in businesses) {
+      final normalizedName =
+          business['name']?.toString().trim().toLowerCase() ?? '';
       final id =
           (business['id'] ?? DateTime.now().millisecondsSinceEpoch.toString())
               .toString();
       business['id'] = id;
+      if (normalizedName.isNotEmpty) {
+        business['normalizedName'] = normalizedName;
+      }
+      business['status'] = business['status'] ?? 'approved';
       batch.set(collection.doc(id), business, SetOptions(merge: true));
       count++;
       if (count >= 450) {
@@ -112,9 +112,7 @@ class MigrationService {
     }
   }
 
-  static Future<void> _upsertReviews(
-    List<Map<String, dynamic>> reviews,
-  ) async {
+  static Future<void> _upsertReviews(List<Map<String, dynamic>> reviews) async {
     if (reviews.isEmpty) return;
     final firestore = FirebaseFirestore.instance;
     final collection = firestore.collection('reviews');
@@ -126,6 +124,7 @@ class MigrationService {
           (review['id'] ?? DateTime.now().millisecondsSinceEpoch.toString())
               .toString();
       review['id'] = id;
+      review['hidden'] = review['hidden'] as bool? ?? false;
       batch.set(collection.doc(id), review, SetOptions(merge: true));
       count++;
       if (count >= 450) {
@@ -151,6 +150,7 @@ class MigrationService {
             (service['id'] ?? DateTime.now().millisecondsSinceEpoch.toString())
                 .toString();
         service['id'] = id;
+        service['businessId'] = service['businessId'] ?? businessId;
         await firestore
             .collection('businesses')
             .doc(businessId)

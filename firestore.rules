@@ -1,0 +1,216 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function email() {
+      return signedIn() ? request.auth.token.email : null;
+    }
+
+    function requesterExists() {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function requesterRole() {
+      return requesterExists() &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role != null
+          ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+          : 'user';
+    }
+
+    function isAdmin() {
+      return signedIn() && requesterRole() == 'super_admin';
+    }
+
+    function onlyKeysChanged(allowedKeys) {
+      return request.resource.data.diff(resource.data).changedKeys().hasOnly(allowedKeys);
+    }
+
+    function isApprovedBusiness(data) {
+      return data.status == 'approved' || data.status == null;
+    }
+
+    function isBusinessOwner(data) {
+      return signedIn() && data.ownerEmail != null && data.ownerEmail == email();
+    }
+
+    function businessExists(businessId) {
+      return exists(/databases/$(database)/documents/businesses/$(businessId));
+    }
+
+    function businessData(businessId) {
+      return get(/databases/$(database)/documents/businesses/$(businessId)).data;
+    }
+
+    function canReadBusiness(data) {
+      return isAdmin() || isBusinessOwner(data) || isApprovedBusiness(data);
+    }
+
+    function isReviewOwner(data) {
+      return signedIn() && data.userEmail != null && data.userEmail == email();
+    }
+
+    function isReviewBusinessOwner(data) {
+      return signedIn() &&
+          data.businessOwnerEmail != null &&
+          data.businessOwnerEmail == email();
+    }
+
+    function isSellerForOrder(order) {
+      return signedIn() && (
+        (order.data.sellerId != null && order.data.sellerId == request.auth.uid) ||
+        (order.data.ownerEmail != null && order.data.ownerEmail == email())
+      );
+    }
+
+    function isCustomerForOrder(order) {
+      return signedIn() && (
+        (order.data.customerId != null && order.data.customerId == request.auth.uid) ||
+        (order.data.userId != null && order.data.userId == request.auth.uid)
+      );
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (uid == request.auth.uid || isAdmin());
+
+      allow create: if signedIn()
+        && uid == request.auth.uid
+        && request.resource.data.email == email()
+        && request.resource.data.isBlocked == false
+        && (request.resource.data.role == 'user' || request.resource.data.role == 'owner');
+
+      allow update: if isAdmin()
+        || (
+          signedIn()
+          && uid == request.auth.uid
+          && onlyKeysChanged([
+            'email',
+            'name',
+            'city',
+            'savedBusinessIds',
+            'role',
+            'lastLoginAt',
+            'updatedAt'
+          ])
+          && (
+            request.resource.data.role == resource.data.role ||
+            (
+              resource.data.role == null &&
+              (
+                request.resource.data.role == 'user' ||
+                request.resource.data.role == 'owner'
+              )
+            )
+          )
+          && request.resource.data.isBlocked == resource.data.isBlocked
+          && (
+            request.resource.data.email == resource.data.email ||
+            request.resource.data.email == email()
+          )
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    match /businesses/{businessId} {
+      allow read: if true;
+
+      allow create: if isAdmin()
+        || (
+          signedIn()
+          && request.resource.data.ownerEmail == email()
+          && request.resource.data.status == 'pending'
+        );
+
+      allow update: if isAdmin()
+        || (
+          isBusinessOwner(resource.data)
+          && request.resource.data.ownerEmail == resource.data.ownerEmail
+          && request.resource.data.status == resource.data.status
+          && request.resource.data.ownerId == resource.data.ownerId
+          && request.resource.data.verifiedBusiness == resource.data.verifiedBusiness
+        );
+
+      allow delete: if isAdmin() || isBusinessOwner(resource.data);
+
+      match /services/{serviceId} {
+        allow read: if businessExists(businessId) && canReadBusiness(businessData(businessId));
+        allow create, update, delete: if isAdmin()
+          || (
+            businessExists(businessId) &&
+            isBusinessOwner(businessData(businessId))
+          );
+      }
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if resource.data.hidden == false;
+
+      allow create: if signedIn()
+        && request.resource.data.userEmail == email()
+        && request.resource.data.hidden == false;
+
+      allow update: if isAdmin()
+        || (
+          isReviewOwner(resource.data)
+          && request.resource.data.userEmail == resource.data.userEmail
+          && request.resource.data.businessId == resource.data.businessId
+          && request.resource.data.businessOwnerEmail == resource.data.businessOwnerEmail
+          && request.resource.data.hidden == resource.data.hidden
+        );
+
+      allow delete: if isAdmin() || isReviewOwner(resource.data);
+    }
+
+    match /claims/{claimId} {
+      allow read: if true;
+
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'pending';
+
+      allow update, delete: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow read: if isAdmin() || isSellerForOrder(resource) || isCustomerForOrder(resource);
+
+      allow create: if signedIn()
+        && businessExists(request.resource.data.businessId)
+        && request.resource.data.customerId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.ownerEmail == businessData(request.resource.data.businessId).ownerEmail
+        && request.resource.data.paymentMethod == 'COD'
+        && request.resource.data.status == 'pending';
+
+      allow update: if isAdmin()
+        || (
+          isSellerForOrder(resource)
+          && onlyKeysChanged([
+            'status',
+            'updatedAt',
+            'statusHistory',
+            'ownerNote',
+            'estimatedReadyAt',
+            'courierCarrier',
+            'courierTrackingId'
+          ])
+        )
+        || (
+          isCustomerForOrder(resource)
+          && resource.data.status == 'pending'
+          && request.resource.data.status == 'cancelled'
+          && onlyKeysChanged(['status', 'updatedAt', 'statusHistory'])
+        );
+
+      allow delete: if isAdmin();
+    }
+
+    match /analytics_counters/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+  }
+}

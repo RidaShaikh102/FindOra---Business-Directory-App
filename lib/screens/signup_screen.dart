@@ -1,28 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/auth_service.dart';
 import '../config/app_config.dart';
 import '../services/analytics_service.dart';
+import 'package:findora/providers/auth_form_providers.dart';
 import 'login_screen.dart';
 import 'role_gate.dart';
 
-class SignUpScreen extends StatefulWidget {
+class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
 
   @override
-  State<SignUpScreen> createState() => _SignUpScreenState();
+  ConsumerState<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _SignUpScreenState extends State<SignUpScreen> {
+class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  String _selectedRole = 'user';
-
-  // Null-safe booleans
-  bool _isLoading = false;
-  bool _obscurePassword = true;
-  double _passwordStrength = 0.0;
 
   // Colors
   static const Color primaryColor = Color(0xFF137B75);
@@ -39,7 +35,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (value.length >= 6) strength += 0.3;
     if (RegExp(r"[0-9]").hasMatch(value)) strength += 0.3;
     if (RegExp(r"[A-Z]").hasMatch(value)) strength += 0.4;
-    setState(() => _passwordStrength = strength.clamp(0.0, 1.0));
+    ref.read(signupFormProvider.notifier).updateStrength(strength);
   }
 
   Future<void> _signUp() async {
@@ -58,15 +54,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
+    ref.read(signupFormProvider.notifier).setLoading(true);
 
+    final formState = ref.read(signupFormProvider);
     try {
       final authService = AuthService();
       final success = await authService.signup(
         email,
         password,
         name,
-        role: _selectedRole,
+        role: formState.selectedRole,
       );
       if (success) {
         await AnalyticsService.logAction('signup');
@@ -95,7 +92,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) ref.read(signupFormProvider.notifier).setLoading(false);
     }
   }
 
@@ -115,6 +112,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final formState = ref.watch(signupFormProvider);
     return Scaffold(
       backgroundColor: Colors.grey[100],
       body: SafeArea(
@@ -184,7 +182,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             const SizedBox(height: 16),
 
                             DropdownButtonFormField<String>(
-                              initialValue: _selectedRole,
+                              initialValue: formState.selectedRole,
                               decoration: _inputDecoration("Role", Icons.badge),
                               items: const [
                                 DropdownMenuItem(
@@ -198,7 +196,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               ],
                               onChanged: (value) {
                                 if (value == null) return;
-                                setState(() => _selectedRole = value);
+                                ref
+                                    .read(signupFormProvider.notifier)
+                                    .updateRole(value);
                               },
                             ),
                             const SizedBox(height: 16),
@@ -206,7 +206,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             // Password
                             TextFormField(
                               controller: _passwordController,
-                              obscureText: _obscurePassword,
+                              obscureText: formState.obscurePassword,
                               onChanged: _checkPasswordStrength,
                               decoration:
                                   _inputDecoration(
@@ -215,14 +215,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   ).copyWith(
                                     suffixIcon: IconButton(
                                       icon: Icon(
-                                        _obscurePassword
+                                        formState.obscurePassword
                                             ? Icons.visibility_off
                                             : Icons.visibility,
                                       ),
-                                      onPressed: () => setState(
-                                        () => _obscurePassword =
-                                            !_obscurePassword,
-                                      ),
+                                      onPressed: () => ref
+                                          .read(signupFormProvider.notifier)
+                                          .toggleObscure(),
                                     ),
                                   ),
                               validator: (value) =>
@@ -234,27 +233,27 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                             // Password strength
                             LinearProgressIndicator(
-                              value: _passwordStrength,
+                              value: formState.passwordStrength,
                               backgroundColor: Colors.grey[300],
                               minHeight: 6,
-                              color: _passwordStrength < 0.4
+                              color: formState.passwordStrength < 0.4
                                   ? Colors.red
-                                  : _passwordStrength < 0.7
+                                  : formState.passwordStrength < 0.7
                                   ? Colors.orange
                                   : Colors.green,
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              _passwordStrength < 0.4
+                              formState.passwordStrength < 0.4
                                   ? "Weak password"
-                                  : _passwordStrength < 0.7
+                                  : formState.passwordStrength < 0.7
                                   ? "Medium strength"
                                   : "Strong password",
                               style: TextStyle(
                                 fontSize: 12,
-                                color: _passwordStrength < 0.4
+                                color: formState.passwordStrength < 0.4
                                     ? Colors.red
-                                    : _passwordStrength < 0.7
+                                    : formState.passwordStrength < 0.7
                                     ? Colors.orange
                                     : Colors.green,
                               ),
@@ -263,7 +262,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
                             // Signup button
                             ElevatedButton(
-                              onPressed: _isLoading ? null : _signUp,
+                              onPressed: formState.isLoading ? null : _signUp,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: primaryColor,
                                 padding: const EdgeInsets.symmetric(
@@ -273,7 +272,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
-                              child: _isLoading
+                              child: formState.isLoading
                                   ? const CircularProgressIndicator(
                                       color: Colors.white,
                                     )

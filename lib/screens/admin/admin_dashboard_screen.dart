@@ -18,6 +18,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   List<MapEntry<String, int>> _topScreens = [];
   List<MapEntry<String, int>> _topActions = [];
   bool _loading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -26,30 +27,44 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Future<void> _loadStats() async {
-    final storage = LocalStorageService();
-    final auth = AuthService();
-    final businesses = await storage.getBusinesses();
-    final reviews = await storage.getReviews();
-    final users = await auth.getUsers();
-    final traffic = await AnalyticsService.getAppOpens();
-    final screens = await AnalyticsService.getScreenViews();
-    final actions = await AnalyticsService.getActions();
-
-    final screenList = screens.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    final actionList = actions.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-
-    if (!mounted) return;
     setState(() {
-      _businessCount = businesses.length;
-      _reviewCount = reviews.length;
-      _userCount = users.length;
-      _trafficCount = traffic;
-      _topScreens = screenList.take(5).toList();
-      _topActions = actionList.take(5).toList();
-      _loading = false;
+      _loading = true;
+      _errorMessage = null;
     });
+
+    try {
+      final storage = LocalStorageService();
+      final auth = AuthService();
+      final businesses = await storage.getBusinessCount();
+      final reviews = await storage.getReviewCount(includeHidden: true);
+      final users = await auth.getUserCount();
+      final traffic = await AnalyticsService.getAppOpens();
+      final screens = await AnalyticsService.getScreenViews();
+      final actions = await AnalyticsService.getActions();
+
+      final screenList = screens.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+      final actionList = actions.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+
+      if (!mounted) return;
+      setState(() {
+        _businessCount = businesses;
+        _reviewCount = reviews;
+        _userCount = users;
+        _trafficCount = traffic;
+        _topScreens = screenList.take(5).toList();
+        _topActions = actionList.take(5).toList();
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _errorMessage =
+            'Unable to load dashboard analytics right now. Pull down or tap retry.';
+      });
+    }
   }
 
   @override
@@ -58,6 +73,36 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       return const Scaffold(
         backgroundColor: Color(0xFFF7F9FB),
         body: Center(child: CircularProgressIndicator(color: Colors.teal)),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF7F9FB),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _errorMessage!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: _loadStats,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal.shade700,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
 
@@ -337,10 +382,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (key.isEmpty) return key;
     final normalized = key
         .replaceAll('_', ' ')
-        .replaceAllMapped(
-          RegExp(r'([a-z])([A-Z])'),
-          (m) => '${m[1]} ${m[2]}',
-        );
+        .replaceAllMapped(RegExp(r'([a-z])([A-Z])'), (m) => '${m[1]} ${m[2]}');
     return normalized[0].toUpperCase() + normalized.substring(1).toLowerCase();
   }
 }

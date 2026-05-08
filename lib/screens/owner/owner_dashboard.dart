@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+
 import 'package:findora/screens/add_business_screen.dart';
-import 'package:findora/screens/your_businesses.dart';
+import 'package:findora/screens/owner/manage_orders_screen.dart';
 import 'package:findora/screens/user_review_screen.dart';
+import 'package:findora/screens/your_businesses.dart';
+import 'package:findora/services/analytics_service.dart';
 import 'package:findora/services/auth_service.dart';
 import 'package:findora/services/local_storage_service.dart';
-import 'package:findora/services/analytics_service.dart';
 
 class OwnerDashboardScreen extends StatefulWidget {
   const OwnerDashboardScreen({super.key});
@@ -15,7 +17,8 @@ class OwnerDashboardScreen extends StatefulWidget {
 
 class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   int _businessCount = 0;
-  int _reviewCount = 0;
+  int _orderCount = 0;
+  int _pendingOrderCount = 0;
   String _email = '';
 
   @override
@@ -29,16 +32,16 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
     final authService = AuthService();
     final email = await authService.getCurrentUserEmail() ?? '';
     final storage = LocalStorageService();
-    final businesses = await storage.getBusinesses();
-    final reviews = await storage.getReviews();
+    final businesses = await storage.getBusinessesByOwner(email);
+    final orders = await storage.getOrdersForOwner(email);
 
+    if (!mounted) return;
     setState(() {
       _email = email;
-      _businessCount = businesses.where((b) => b['ownerEmail'] == email).length;
-      _reviewCount = reviews
-          .where(
-            (r) => r['ownerEmail'] == email || r['businessOwnerEmail'] == email,
-          )
+      _businessCount = businesses.length;
+      _orderCount = orders.length;
+      _pendingOrderCount = orders
+          .where((order) => order['status'] == 'pending')
           .length;
     });
   }
@@ -49,10 +52,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
       backgroundColor: const Color(0xFFF7F9FB),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 500),
+          constraints: const BoxConstraints(maxWidth: 560),
           child: CustomScrollView(
             slivers: [
-              // Modern header
               SliverToBoxAdapter(
                 child: Container(
                   decoration: BoxDecoration(
@@ -61,7 +63,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                       end: Alignment.bottomRight,
                       colors: [
                         const Color(0xFF0A2D3F),
-                        const Color(0xFF0A2D3F).withOpacity(0.9),
+                        const Color(0xFF0A2D3F).withValues(alpha: 0.9),
                         Colors.teal.shade700,
                       ],
                     ),
@@ -71,7 +73,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 20,
                         offset: const Offset(0, 5),
                       ),
@@ -89,7 +91,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 child: const Icon(
@@ -99,11 +101,11 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                                 ),
                               ),
                               const SizedBox(width: 16),
-                              const Expanded(
+                              Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
+                                    const Text(
                                       'Owner Panel',
                                       style: TextStyle(
                                         color: Colors.white,
@@ -112,10 +114,12 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                                         letterSpacing: 0.5,
                                       ),
                                     ),
-                                    SizedBox(height: 4),
+                                    const SizedBox(height: 4),
                                     Text(
-                                      'Manage your businesses',
-                                      style: TextStyle(
+                                      _pendingOrderCount > 0
+                                          ? '$_pendingOrderCount order(s) waiting for action'
+                                          : 'Manage your businesses and orders',
+                                      style: const TextStyle(
                                         color: Colors.white70,
                                         fontSize: 14,
                                         fontWeight: FontWeight.w500,
@@ -132,36 +136,49 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                   ),
                 ),
               ),
-
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
-                    // Stats row
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildStatCard(
-                            'My Businesses',
-                            _businessCount.toString(),
-                            Icons.store_rounded,
-                            Colors.teal.shade700,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildStatCard(
-                            'Reviews',
-                            _reviewCount.toString(),
-                            Icons.rate_review_rounded,
-                            Colors.teal.shade700,
-                          ),
-                        ),
-                      ],
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final cardWidth = (constraints.maxWidth - 12) / 2;
+                        return Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            SizedBox(
+                              width: cardWidth,
+                              child: _buildStatCard(
+                                'My Businesses',
+                                _businessCount.toString(),
+                                Icons.store_rounded,
+                                Colors.teal.shade700,
+                              ),
+                            ),
+                            SizedBox(
+                              width: cardWidth,
+                              child: _buildStatCard(
+                                'All Orders',
+                                _orderCount.toString(),
+                                Icons.shopping_bag_rounded,
+                                Colors.blue.shade700,
+                              ),
+                            ),
+                            SizedBox(
+                              width: cardWidth,
+                              child: _buildStatCard(
+                                'Pending',
+                                _pendingOrderCount.toString(),
+                                Icons.pending_actions_rounded,
+                                Colors.orange.shade700,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 24),
-
-                    // Section label
                     Padding(
                       padding: const EdgeInsets.only(left: 4, bottom: 12),
                       child: Text(
@@ -174,7 +191,21 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                         ),
                       ),
                     ),
-
+                    _buildActionCard(
+                      label: 'Manage Orders',
+                      subtitle: 'Confirm, track, and complete customer orders',
+                      icon: Icons.receipt_long_rounded,
+                      iconColor: Colors.orange.shade700,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ManageOrdersScreen(),
+                          ),
+                        ).then((_) => _loadStats());
+                      },
+                    ),
+                    const SizedBox(height: 12),
                     _buildActionCard(
                       label: 'Add Business',
                       subtitle: 'Register a new business',
@@ -184,7 +215,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const AddBusinessScreen()),
+                            builder: (_) => const AddBusinessScreen(),
+                          ),
                         ).then((_) => _loadStats());
                       },
                     ),
@@ -214,7 +246,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const UserReviewsScreen()),
+                            builder: (_) => const UserReviewsScreen(),
+                          ),
                         );
                       },
                     ),
@@ -242,7 +275,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -254,7 +287,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: accentColor.withOpacity(0.12),
+              color: accentColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: accentColor, size: 24),
@@ -296,7 +329,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -315,7 +348,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.12),
+                    color: iconColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(icon, color: iconColor, size: 26),

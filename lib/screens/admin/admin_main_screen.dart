@@ -4,6 +4,7 @@ import 'package:findora/screens/login_screen.dart';
 import 'package:findora/screens/change_password_dialog.dart';
 import 'package:findora/services/analytics_service.dart';
 import 'admin_dashboard_screen.dart';
+import 'admin_orders_screen.dart';
 import 'manage_businesses_screen.dart';
 import 'manage_claims_screen.dart';
 import 'manage_reviews_screen.dart';
@@ -21,6 +22,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
 
   final List<Widget> _screens = const [
     AdminDashboardScreen(),
+    AdminOrdersScreen(),
     ManageBusinessesScreen(),
     ManageClaimsScreen(),
     ManageReviewsScreen(),
@@ -29,6 +31,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
 
   static const List<_NavItem> _navItems = [
     _NavItem(label: 'Dashboard', icon: Icons.dashboard_rounded),
+    _NavItem(label: 'Orders', icon: Icons.receipt_long_rounded),
     _NavItem(label: 'Businesses', icon: Icons.store_rounded),
     _NavItem(label: 'Claims', icon: Icons.how_to_reg_rounded),
     _NavItem(label: 'Reviews', icon: Icons.rate_review_rounded),
@@ -46,10 +49,12 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
     final name = index == 0
         ? 'AdminDashboard'
         : index == 1
-        ? 'AdminBusinesses'
+        ? 'AdminOrders'
         : index == 2
-        ? 'AdminClaims'
+        ? 'AdminBusinesses'
         : index == 3
+        ? 'AdminClaims'
+        : index == 4
         ? 'AdminReviews'
         : 'AdminUsers';
     AnalyticsService.logScreenView(name);
@@ -217,13 +222,14 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: List.generate(
                 _navItems.length,
-                (index) => _NavTile(
-                  item: _navItems[index],
-                  isSelected: _selectedIndex == index,
-                  onTap: () => _onItemTapped(index),
+                (index) => Expanded(
+                  child: _NavTile(
+                    item: _navItems[index],
+                    isSelected: _selectedIndex == index,
+                    onTap: () => _onItemTapped(index),
+                  ),
                 ),
               ),
             ),
@@ -259,7 +265,7 @@ class _NavTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(14),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
               ? Colors.teal.shade700.withOpacity(0.12)
@@ -271,17 +277,20 @@ class _NavTile extends StatelessWidget {
           children: [
             Icon(
               item.icon,
-              size: 24,
+              size: 22,
               color: isSelected ? Colors.teal.shade700 : Colors.grey.shade600,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 3),
             Text(
               item.label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 color: isSelected ? Colors.teal.shade700 : Colors.grey.shade600,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
             ),
           ],
         ),

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:findora/screens/detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:findora/services/local_storage_service.dart';

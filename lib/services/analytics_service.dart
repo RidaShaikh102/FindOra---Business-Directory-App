@@ -9,6 +9,7 @@ class AnalyticsService {
   static const String _keyScreenViews = 'analytics_screen_views';
   static const String _keyActions = 'analytics_actions';
   static const String _analyticsDocPath = 'analytics_counters/global';
+  static const bool _mirrorCountersToFirestore = false;
 
   static FirebaseAnalytics get _analytics => FirebaseAnalytics.instance;
   static FirebaseFirestore get _firestore => FirebaseFirestore.instance;
@@ -16,7 +17,7 @@ class AnalyticsService {
   static Future<int> incrementAppOpens() async {
     final next = await _incrementLocalInt(_keyAppOpens);
     await _logAppOpen();
-    await _incrementFirestoreField('appOpens', 1);
+    await _maybeIncrementFirestoreField('appOpens', 1);
     return next;
   }
 
@@ -50,13 +51,13 @@ class AnalyticsService {
   static Future<void> logScreenView(String name) async {
     await _incrementLocal(_keyScreenViews, name);
     await _logScreen(name);
-    await _incrementFirestoreNested('screenViews', name);
+    await _maybeIncrementFirestoreNested('screenViews', name);
   }
 
   static Future<void> logAction(String name) async {
     await _incrementLocal(_keyActions, name);
     await _logActionEvent(name);
-    await _incrementFirestoreNested('actions', name);
+    await _maybeIncrementFirestoreNested('actions', name);
   }
 
   static Future<Map<String, int>> _getLocalMap(String key) async {
@@ -118,7 +119,7 @@ class AnalyticsService {
       'businessId': businessId,
       'businessName': businessName ?? '',
     });
-    await _incrementFirestoreNested('actions', 'business_viewed');
+    await _maybeIncrementFirestoreNested('actions', 'business_viewed');
   }
 
   static Future<void> logReviewWritten(
@@ -130,10 +131,14 @@ class AnalyticsService {
       'businessId': businessId,
       'businessName': businessName ?? '',
     });
-    await _incrementFirestoreNested('actions', 'review_written');
+    await _maybeIncrementFirestoreNested('actions', 'review_written');
   }
 
-  static Future<void> _incrementFirestoreField(String field, int by) async {
+  static Future<void> _maybeIncrementFirestoreField(
+    String field,
+    int by,
+  ) async {
+    if (!_mirrorCountersToFirestore) return;
     try {
       await _firestore.doc(_analyticsDocPath).set({
         field: FieldValue.increment(by),
@@ -142,10 +147,11 @@ class AnalyticsService {
     } catch (_) {}
   }
 
-  static Future<void> _incrementFirestoreNested(
+  static Future<void> _maybeIncrementFirestoreNested(
     String root,
     String name,
   ) async {
+    if (!_mirrorCountersToFirestore) return;
     final key = _sanitizeKey(name);
     final fieldPath = '$root.$key';
     try {

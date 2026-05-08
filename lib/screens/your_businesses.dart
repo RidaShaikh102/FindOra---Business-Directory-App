@@ -28,11 +28,11 @@ class _YourBusinessesScreenState extends State<YourBusinessesScreen> {
 
   Future<void> _loadUserBusinesses() async {
     try {
-      final businesses = await _storageService.getBusinesses();
+      final businesses = await _storageService.getBusinessesByOwner(
+        loggedInEmail,
+      );
       setState(() {
-        userBusinesses = businesses
-            .where((b) => b['ownerEmail'] == loggedInEmail)
-            .toList();
+        userBusinesses = businesses;
       });
     } catch (e) {
       debugPrint("Error loading user businesses: $e");

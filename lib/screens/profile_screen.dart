@@ -3,15 +3,18 @@ import 'package:findora/screens/change_password_dialog.dart';
 import 'package:findora/screens/contact_us.dart';
 import 'package:findora/screens/help_center.dart';
 import 'package:findora/screens/login_screen.dart';
+import 'package:findora/screens/my_orders_screen.dart';
 import 'package:findora/screens/my_reviews.dart';
 import 'package:findora/screens/privacy_setting_screen.dart';
 import 'package:findora/screens/saved_businesses.dart';
+import 'package:findora/services/deep_link_service.dart';
 
 import 'package:findora/screens/your_businesses.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:share_plus/share_plus.dart';
+import 'dart:convert';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -24,6 +27,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _username = "";
   String _email = "";
   String _role = "";
+  String _city = "";
+  bool _shareProfile = true;
 
   @override
   void initState() {
@@ -39,6 +44,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final email = await authService.getCurrentUserEmail() ?? '';
     final role = await authService.getCurrentUserRole() ?? 'user';
+    final city = await authService.getUserCity() ?? '';
 
     // For simplicity, use email prefix as username, or load from prefs if stored
     final prefs = await SharedPreferences.getInstance();
@@ -46,12 +52,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
         prefs.getString('username') ??
         (email.isNotEmpty ? email.split('@')[0] : 'User');
 
+    final prefsPrivacy = await SharedPreferences.getInstance();
+    final privacyJson = prefsPrivacy.getString('privacy_settings');
+    bool shareProfile = true;
+    if (privacyJson != null) {
+      try {
+        final data = jsonDecode(privacyJson);
+        shareProfile = data['shareProfile'] ?? true;
+      } catch (_) {
+        shareProfile = true;
+      }
+    }
+
     if (!mounted) return;
     setState(() {
       _email = email;
       _username = username;
       _role = role;
+      _city = city;
+      _shareProfile = shareProfile;
     });
+  }
+
+  Future<void> _editCity() async {
+    final controller = TextEditingController(text: _city);
+    final messenger = ScaffoldMessenger.of(context);
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delivery city'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'City',
+            hintText: 'e.g. Sukkur',
+          ),
+          textInputAction: TextInputAction.done,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+    final value = controller.text.trim();
+    if (value.isEmpty) return;
+
+    try {
+      await AuthService().setUserCity(value);
+      if (!mounted) return;
+      setState(() => _city = value);
+      messenger.showSnackBar(const SnackBar(content: Text('City updated')));
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Failed to update city: $e')),
+      );
+    } finally {
+      controller.dispose();
+    }
   }
 
   /// Edit username dialog
@@ -253,13 +320,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         color: Colors.white,
                                         size: 18,
                                       ),
-                                      onPressed: () {
-                                        Share.share(
-                                          'Check out FindOra - the ultimate app for discovering local businesses! Download now: [App Store Link] or [Google Play Link]',
-                                          subject: 'Discover FindOra App',
-                                        );
-                                      },
-                                      tooltip: "Share App",
+                                      onPressed: _shareProfile
+                                          ? () {
+                                              final profileUrl = DeepLinkService.generateShareableProfileLink(
+                                                username: _username.trim(),
+                                                role: _role.trim(),
+                                                city: _city.trim(),
+                                              );
+                                              Share.share(
+                                                'Check out my FindOra profile: $profileUrl',
+                                                subject: 'My FindOra profile',
+                                              );
+                                            }
+                                          : () {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Profile sharing is turned off in Privacy Settings.',
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                      tooltip: _shareProfile
+                                          ? "Share Profile"
+                                          : "Sharing disabled",
                                     ),
                                   ),
                                 ],
@@ -374,6 +460,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     children: [
+                      _buildModernOptionCard(
+                        _city.trim().isEmpty
+                            ? "Set delivery city"
+                            : "Delivery city: $_city",
+                        Icons.location_city_rounded,
+                        Colors.teal.shade700,
+                        onTap: _editCity,
+                      ),
                       if (_role == 'owner')
                         _buildModernOptionCard(
                           "Your Businesses",
@@ -423,6 +517,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Icons.favorite_rounded,
                         Colors.teal.shade700,
                         screen: const SavedBusinessesScreen(),
+                      ),
+                      _buildModernOptionCard(
+                        "My Orders",
+                        Icons.receipt_long_rounded,
+                        Colors.teal.shade700,
+                        screen: const MyOrdersScreen(),
                       ),
                       _buildModernOptionCard(
                         "Contact Us",
