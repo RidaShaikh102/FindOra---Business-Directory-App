@@ -40,6 +40,8 @@ class _AllBusinessesScreenState extends State<AllBusinessesScreen> {
   @override
   void initState() {
     super.initState();
+    filterCategory = widget.selectedCategory;
+    filterSubcategory = widget.selectedSubcategory;
     _loadBusinesses();
     _loadCurrentUser();
   }
@@ -420,13 +422,28 @@ class _AllBusinessesScreenState extends State<AllBusinessesScreen> {
                               medium: 3,
                               expanded: 4,
                             );
+                            final textScale = MediaQuery.textScalerOf(
+                              context,
+                            ).scale(1);
+                            final useComfortableCards = columns >= 3;
+                            const gridSpacing = 10.0;
+                            final cardWidth =
+                                (constraints.maxWidth -
+                                    (gridSpacing * (columns - 1))) /
+                                columns;
+                            final cardHeight =
+                                BusinessCard.recommendedMainAxisExtent(
+                                  cardWidth,
+                                  textScale: textScale,
+                                  comfortable: useComfortableCards,
+                                );
                             return GridView.builder(
                               gridDelegate:
                                   SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: columns,
-                                    crossAxisSpacing: 10,
-                                    mainAxisSpacing: 10,
-                                    childAspectRatio: columns >= 4 ? 0.84 : 0.78,
+                                    crossAxisSpacing: gridSpacing,
+                                    mainAxisSpacing: gridSpacing,
+                                    mainAxisExtent: cardHeight,
                                   ),
                               itemCount: filteredBusinesses.length,
                               itemBuilder: (context, index) {
@@ -440,7 +457,8 @@ class _AllBusinessesScreenState extends State<AllBusinessesScreen> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (_) => DetailScreen(item: item),
+                                        builder: (_) =>
+                                            DetailScreen(item: item),
                                       ),
                                     );
                                   },
@@ -449,7 +467,8 @@ class _AllBusinessesScreenState extends State<AllBusinessesScreen> {
                                     showSaveButton: true,
                                     isSaved: isSaved,
                                     onSave: () => _toggleSave(item),
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(22),
+                                    useComfortableDensity: useComfortableCards,
                                   ),
                                 );
                               },

@@ -41,6 +41,23 @@ class _SavedBusinessesScreenState extends State<SavedBusinessesScreen> {
     }
   }
 
+  Future<void> _toggleSave(Map<String, dynamic> item) async {
+    final businessId = item['id']?.toString() ?? '';
+    if (businessId.isEmpty) return;
+
+    if (savedIds.contains(businessId)) {
+      await _storageService.removeSavedBusiness(businessId);
+      savedIds.remove(businessId);
+    } else {
+      await _storageService.saveSavedBusiness(businessId);
+      savedIds.add(businessId);
+    }
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final savedBusinesses = allBusinesses
@@ -97,26 +114,52 @@ class _SavedBusinessesScreenState extends State<SavedBusinessesScreen> {
                 )
               : Padding(
                   padding: const EdgeInsets.all(12),
-                  child: GridView.builder(
-                    itemCount: savedBusinesses.length,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: columns,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: columns >= 4 ? 0.84 : 0.78,
-                    ),
-                    itemBuilder: (context, index) {
-                      final item = savedBusinesses[index];
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => DetailScreen(item: item),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final textScale = MediaQuery.textScalerOf(
+                        context,
+                      ).scale(1);
+                      final useComfortableCards = columns >= 3;
+                      const gridSpacing = 12.0;
+                      final cardWidth =
+                          (constraints.maxWidth -
+                              (gridSpacing * (columns - 1))) /
+                          columns;
+                      final cardHeight = BusinessCard.recommendedMainAxisExtent(
+                        cardWidth,
+                        textScale: textScale,
+                        comfortable: useComfortableCards,
+                      );
+
+                      return GridView.builder(
+                        itemCount: savedBusinesses.length,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: columns,
+                          crossAxisSpacing: gridSpacing,
+                          mainAxisSpacing: gridSpacing,
+                          mainAxisExtent: cardHeight,
+                        ),
+                        itemBuilder: (context, index) {
+                          final item = savedBusinesses[index];
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => DetailScreen(item: item),
+                                ),
+                              );
+                            },
+                            child: BusinessCard(
+                              item: item,
+                              showSaveButton: true,
+                              isSaved: true,
+                              onSave: () => _toggleSave(item),
+                              borderRadius: BorderRadius.circular(22),
+                              useComfortableDensity: useComfortableCards,
                             ),
                           );
                         },
-                        child: BusinessCard(item: item),
                       );
                     },
                   ),

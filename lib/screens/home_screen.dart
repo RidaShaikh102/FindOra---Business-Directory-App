@@ -192,304 +192,304 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ResponsivePageContainer(
           maxWidth: 1280,
           child: SingleChildScrollView(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  /// Top welcome + quick info
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0A2D3F).withOpacity(0.06),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.explore_rounded,
-                          color: Color(0xFF0A2D3F),
-                          size: 24,
-                        ),
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                /// Top welcome + quick info
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0A2D3F).withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Discover nearby places',
-                              style: TextStyle(
-                                fontSize: 18 * scale,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF0A2D3F),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Browse categories or tap on the map pins to explore businesses.',
-                              style: TextStyle(
-                                fontSize: 12 * scale,
-                                color: Colors.grey[700],
-                              ),
-                            ),
-                          ],
-                        ),
+                      child: const Icon(
+                        Icons.explore_rounded,
+                        color: Color(0xFF0A2D3F),
+                        size: 24,
                       ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  /// Map Section
-                  SizedBox(
-                    height: 230,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: FlutterMap(
-                        options: const MapOptions(
-                          initialCenter: LatLng(27.7052, 68.8570),
-                          initialZoom: 12.0,
-                        ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          TileLayer(
-                            urlTemplate:
-                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'com.findora.app',
+                          Text(
+                            'Discover nearby places',
+                            style: TextStyle(
+                              fontSize: 18 * scale,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF0A2D3F),
+                            ),
                           ),
-                          MarkerLayer(markers: markers),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Browse categories or tap on the map pins to explore businesses.',
+                            style: TextStyle(
+                              fontSize: 12 * scale,
+                              color: Colors.grey[700],
+                            ),
+                          ),
                         ],
                       ),
                     ),
+                  ],
+                ),
+
+                const SizedBox(height: 14),
+
+                /// Map Section
+                SizedBox(
+                  height: 230,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: FlutterMap(
+                      options: const MapOptions(
+                        initialCenter: LatLng(27.7052, 68.8570),
+                        initialZoom: 12.0,
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate:
+                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.findora.app',
+                        ),
+                        MarkerLayer(markers: markers),
+                      ],
+                    ),
                   ),
+                ),
 
-                  const SizedBox(height: 18),
+                const SizedBox(height: 18),
 
-                  /// Section label: Categories
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Browse by category',
+                /// Section label: Categories
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Browse by category',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (allBusinesses.isNotEmpty)
+                      Text(
+                        '${filteredItems.length} places',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 12 * scale,
+                          color: Colors.grey[600],
                         ),
                       ),
-                      if (allBusinesses.isNotEmpty)
-                        Text(
-                          '${filteredItems.length} places',
-                          style: TextStyle(
-                            fontSize: 12 * scale,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                    ],
-                  ),
+                  ],
+                ),
 
-                  const SizedBox(height: 8),
+                const SizedBox(height: 8),
 
-                  /// Categories
-                  SizedBox(
-                    height: 90,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: categories.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
-                      itemBuilder: (context, index) {
-                        final category = categories[index];
-                        final isSelected = selectedCategory == category['name'];
+                /// Categories
+                SizedBox(
+                  height: 90,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: categories.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final category = categories[index];
+                      final isSelected = selectedCategory == category['name'];
 
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              selectedCategory = category['name'];
-                              selectedSubcategory = null;
-                            });
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            curve: Curves.easeOut,
-                            decoration: BoxDecoration(
-                              // Use app-wide gradient for selected category, white for others
-                              gradient: isSelected
-                                  ? LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                        const Color(0xFF0A2D3F),
-                                        const Color(
-                                          0xFF0A2D3F,
-                                        ).withOpacity(0.9),
-                                        Colors.teal.shade700,
-                                      ],
-                                    )
-                                  : null,
-                              color: isSelected ? null : Colors.white,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: isSelected
-                                    ? Colors.transparent
-                                    : Colors.grey.shade300,
-                              ),
-                              boxShadow: isSelected
-                                  ? [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.12),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ]
-                                  : [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.03),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedCategory = category['name'];
+                            selectedSubcategory = null;
+                          });
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOut,
+                          decoration: BoxDecoration(
+                            // Use app-wide gradient for selected category, white for others
+                            gradient: isSelected
+                                ? LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      const Color(0xFF0A2D3F),
+                                      const Color(0xFF0A2D3F).withOpacity(0.9),
+                                      Colors.teal.shade700,
                                     ],
+                                  )
+                                : null,
+                            color: isSelected ? null : Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isSelected
+                                  ? Colors.transparent
+                                  : Colors.grey.shade300,
                             ),
-                            child: Container(
-                              width: 88,
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 10.0,
-                                horizontal: 6,
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    category['icon'] ?? Icons.category,
-                                    size: 28,
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.12),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ]
+                                : [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.03),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                          ),
+                          child: Container(
+                            width: 88,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 10.0,
+                              horizontal: 6,
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  category['icon'] ?? Icons.category,
+                                  size: 28,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : const Color(0xFF0A2D3F),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  category['name'],
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 11.5,
                                     color: isSelected
                                         ? Colors.white
-                                        : const Color(0xFF0A2D3F),
+                                        : Colors.black87,
+                                    fontWeight: FontWeight.w500,
                                   ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    category['name'],
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 11.5,
-                                      color: isSelected
-                                          ? Colors.white
-                                          : Colors.black87,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                if (selectedCategory != 'All') _buildSubcategories(),
+
+                const SizedBox(height: 16),
+
+                /// Heading + See All
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        selectedCategory == 'All'
+                            ? 'Explore All Places'
+                            : selectedSubcategory == null
+                            ? 'Explore $selectedCategory'
+                            : 'Explore $selectedCategory → $selectedSubcategory',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AllBusinessesScreen(
+                              selectedCategory: selectedCategory,
+                              selectedSubcategory: selectedSubcategory,
+                              currentUserEmail: _currentEmail,
                             ),
                           ),
                         );
                       },
+                      style: TextButton.styleFrom(foregroundColor: Colors.teal),
+                      child: const Text("See All"),
                     ),
-                  ),
+                  ],
+                ),
 
-                  const SizedBox(height: 12),
+                const SizedBox(height: 12),
 
-                  if (selectedCategory != 'All') _buildSubcategories(),
+                /// Grid of Businesses (responsive layout, original height)
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final crossAxisCount = ResponsiveLayout.adaptiveGridCount(
+                      context,
+                      compact: 2,
+                      medium: 3,
+                      expanded: 4,
+                    );
+                    final textScale = MediaQuery.textScalerOf(context).scale(1);
+                    final useComfortableCards = crossAxisCount >= 3;
+                    const gridSpacing = 10.0;
+                    final cardWidth =
+                        (constraints.maxWidth -
+                            (gridSpacing * (crossAxisCount - 1))) /
+                        crossAxisCount;
+                    final cardHeight = BusinessCard.recommendedMainAxisExtent(
+                      cardWidth,
+                      textScale: textScale,
+                      comfortable: useComfortableCards,
+                    );
 
-                  const SizedBox(height: 16),
-
-                  /// Heading + See All
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          selectedCategory == 'All'
-                              ? 'Explore All Places'
-                              : selectedSubcategory == null
-                              ? 'Explore $selectedCategory'
-                              : 'Explore $selectedCategory → $selectedSubcategory',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: filteredItems.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: gridSpacing,
+                        mainAxisSpacing: gridSpacing,
+                        mainAxisExtent: cardHeight,
                       ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => AllBusinessesScreen(
-                                selectedCategory: selectedCategory,
-                                selectedSubcategory: selectedSubcategory,
-                                currentUserEmail: _currentEmail,
+                      itemBuilder: (context, index) {
+                        final item = filteredItems[index];
+                        final isSaved = _isSaved(item['id']);
+
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => DetailScreen(item: item),
                               ),
-                            ),
-                          );
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.teal,
-                        ),
-                        child: const Text("See All"),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  /// Grid of Businesses (responsive layout, original height)
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final crossAxisCount = ResponsiveLayout.adaptiveGridCount(
-                        context,
-                        compact: 2,
-                        medium: 3,
-                        expanded: 4,
-                      );
-
-                      // Make card content responsive to text scale
-                      final textScale = MediaQuery.of(
-                        context,
-                      ).textScaleFactor.clamp(1.0, 1.4);
-
-                      // Keep original fixed image height and base text height
-                      final childAspectRatio = crossAxisCount >= 4 ? 0.84 : 0.78;
-
-                      return GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: filteredItems.length,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                          childAspectRatio: childAspectRatio,
-                        ),
-                        itemBuilder: (context, index) {
-                          final item = filteredItems[index];
-                          final isSaved = _isSaved(item['id']);
-
-                          return GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => DetailScreen(item: item),
-                                ),
-                              );
-                            },
-                            child: BusinessCard(
-                              item: item,
-                              showSaveButton: true,
-                              isSaved: isSaved,
-                              onSave: () => _toggleSave(item['id'], item),
-                              // imageHeight removed - now square
-                              borderRadius: BorderRadius.circular(16),
-                              showCategoryPill: true, // keeps pill on home
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ],
-              ),
+                            );
+                          },
+                          child: BusinessCard(
+                            item: item,
+                            showSaveButton: true,
+                            isSaved: isSaved,
+                            onSave: () => _toggleSave(item['id'], item),
+                            borderRadius: BorderRadius.circular(22),
+                            showCategoryPill: true,
+                            useComfortableDensity: useComfortableCards,
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ],
             ),
+          ),
         ),
       ),
     );
