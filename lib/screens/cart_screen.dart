@@ -8,6 +8,7 @@ import '../screens/my_orders_screen.dart';
 import '../services/analytics_service.dart';
 import '../services/auth_service.dart';
 import '../services/local_storage_service.dart';
+import 'package:findora/screens/coming_soon_screen.dart';
 
 class _DeliveryQuote {
   final String deliveryMode; // local | courier
@@ -85,6 +86,18 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   }
 
   Future<void> _submitOrder() async {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ComingSoonScreen()),
+    );
+
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+    // ignore: dead_code
+    return;
+
     final cart = ref.read(cartProvider);
     if (cart.isEmpty || !_formKey.currentState!.validate()) {
       return;

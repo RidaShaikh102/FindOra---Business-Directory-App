@@ -11,6 +11,7 @@ import 'package:findora/services/analytics_service.dart';
 import 'package:findora/services/auth_service.dart';
 import 'package:findora/services/local_storage_service.dart';
 import 'package:findora/widgets/responsive_layout.dart';
+import 'package:findora/screens/coming_soon_screen.dart';
 
 class ServicesScreen extends ConsumerStatefulWidget {
   final String businessName;
@@ -100,7 +101,8 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
   Future<void> _openCart() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const CartScreen()),
+      MaterialPageRoute(builder: (_) => const ComingSoonScreen()),
+      // MaterialPageRoute(builder: (_) => const CartScreen()),
     );
     if (mounted) {
       setState(() {});
@@ -254,8 +256,9 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
                         )
                       : LayoutBuilder(
                           builder: (context, constraints) {
-                            final useGrid =
-                                ResponsiveLayout.isMediumOrLarger(context);
+                            final useGrid = ResponsiveLayout.isMediumOrLarger(
+                              context,
+                            );
                             if (!useGrid) {
                               return ListView.builder(
                                 itemCount: services.length,
@@ -373,7 +376,10 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
                             : service.description,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 14, color: Colors.black54),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.black54,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       Row(
@@ -405,7 +411,8 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
                       label: const Text('Visible in your catalog'),
                     )
                   : ElevatedButton.icon(
-                      onPressed: service.isAvailable && _businessCanReceiveOrders
+                      onPressed:
+                          service.isAvailable && _businessCanReceiveOrders
                           ? () => _handleAddToCart(service)
                           : null,
                       icon: Icon(
