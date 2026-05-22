@@ -6,12 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:findora/models/service_model.dart';
 import 'package:findora/providers/cart_provider.dart';
 import 'package:findora/screens/add_services_screen.dart';
-import 'package:findora/screens/cart_screen.dart';
 import 'package:findora/services/analytics_service.dart';
 import 'package:findora/services/auth_service.dart';
 import 'package:findora/services/local_storage_service.dart';
 import 'package:findora/widgets/responsive_layout.dart';
-import 'package:findora/screens/coming_soon_screen.dart';
+import 'package:findora/screens/owner/coming_soon_screen.dart';
 
 class ServicesScreen extends ConsumerStatefulWidget {
   final String businessName;

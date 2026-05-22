@@ -8,17 +8,19 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+import java.util.Properties
+import java.io.FileInputStream
+
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    FileInputStream(keystorePropertiesFile).use { keystoreProperties.load(it) }
+}
+
 android {
     namespace = "com.findora.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
-
-    // Load signing properties from android/key.properties (optional)
-    val keystorePropertiesFile = rootProject.file("android/key.properties")
-    val keystoreProperties = java.util.Properties()
-    if (keystorePropertiesFile.exists()) {
-        java.io.FileInputStream(keystorePropertiesFile).use { keystoreProperties.load(it) }
-    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -42,20 +44,17 @@ android {
 
     signingConfigs {
         create("release") {
-            val storeFilePath = keystoreProperties.getProperty("storeFile")
-            if (!storeFilePath.isNullOrEmpty()) {
-                storeFile = file(storeFilePath)
-            }
             keyAlias = keystoreProperties.getProperty("keyAlias")
             keyPassword = keystoreProperties.getProperty("keyPassword")
+            storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) }
             storePassword = keystoreProperties.getProperty("storePassword")
         }
     }
 
     buildTypes {
         release {
-            // Use `release` signing if key properties exist, otherwise fall back to debug signing
-            signingConfig = if (keystorePropertiesFile.exists()) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
+            // Use keystore from `key.properties` for release builds when available.
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
