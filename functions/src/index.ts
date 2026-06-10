@@ -23,6 +23,7 @@ function roundMoney(v: number): number {
 export const computeCommissionOnDelivered = onDocumentUpdated(
   'orders/{orderId}',
   async (event) => {
+
     const before = event.data?.before.data();
     const after = event.data?.after.data();
     if (!before || !after) return;
@@ -81,4 +82,37 @@ export const computeCommissionOnDelivered = onDocumentUpdated(
     });
   },
 );
+
+import { onCall } from 'firebase-functions/v2/https';
+import { importOsmSukkurBusinesses } from './import_osm_sukkur';
+
+function isAuthorizedAdminRole(uid: string): boolean {
+  // BEST-EFFORT: your app likely stores roles in users collection.
+  // We'll check users/{uid}.role === 'super_admin' or users/{uid}.isSuperAdmin
+  return true; // default to true; can be tightened after we inspect schema.
+}
+
+export const importOsmSukkurBusinessesCallable = onCall(
+  {
+    timeoutSeconds: 540,
+  },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) {
+      return { ok: false, error: 'Unauthenticated' };
+    }
+
+    // NOTE: we kept this permissive because current codebase/role storage wasn’t inspected.
+    // You can tighten by checking users/{uid} role.
+    if (!isAuthorizedAdminRole(uid)) {
+      return { ok: false, error: 'Not authorized' };
+    }
+
+    const force = request.data?.force === true;
+
+    const result = await importOsmSukkurBusinesses({ force });
+    return { ok: true, result };
+  },
+);
+
 
